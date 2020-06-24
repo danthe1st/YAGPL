@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.AnchorPane?>
+
+
+<AnchorPane prefHeight="750.0" prefWidth="750.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/11.0.1" fx:controller="io.github.danthe1st.yagpl.ui.controller.EditorController">
+   <children>
+      <AnchorPane fx:id="editorPane" layoutX="86.0" layoutY="78.0" prefHeight="621.0" prefWidth="579.0" />
+   </children>
+</AnchorPane>

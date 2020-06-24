@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
+import io.github.danthe1st.yagpl.api.util.Resolver;
 
 //TODO expected arguments? --> names
 
@@ -15,7 +16,11 @@ public class Function<R,C> extends GenericObjectAdapter<R,C>{
 	private List<Map.Entry<GenericObject<?,R>,String[]>> operations;
 
 	public Function(String name,List<Map.Entry<GenericObject<?,R>,String[]>> operations) {
-		super(name);
+		super("func-"+name);
+		this.operations=operations;
+	}
+	public Function(String name,List<Map.Entry<GenericObject<?,R>,String[]>> operations,Class<?>[] expectedParameters) {
+		super("func-"+name,expectedParameters);
 		this.operations=operations;
 	}
 
@@ -31,10 +36,14 @@ public class Function<R,C> extends GenericObjectAdapter<R,C>{
 			String[] paramsNamesToPass = next.getValue();
 			Object[] paramsToPass=new Object[paramsNamesToPass.length];
 			for (int i = 0; i < paramsNamesToPass.length; i++) {
-				paramsToPass[i]=innerCtx.getVariable(paramsNamesToPass[i]);
+				paramsToPass[i]=Resolver.resolveVariable(innerCtx, paramsNamesToPass[i]);
 			}
 			next.getKey().execute(innerCtx,paramsToPass);
 		}
 		return innerCtx.getReturn();
 	}
+	public List<Map.Entry<GenericObject<?, R>, String[]>> getOperations() {
+		return operations;
+	}
+	
 }

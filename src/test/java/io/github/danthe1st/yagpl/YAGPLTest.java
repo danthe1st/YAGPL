@@ -2,21 +2,21 @@ package io.github.danthe1st.yagpl;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import io.github.danthe1st.yagpl.api.Assignment;
-import io.github.danthe1st.yagpl.api.Expression;
 import io.github.danthe1st.yagpl.api.Function;
 import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.GenericObject;
 import io.github.danthe1st.yagpl.api.ReturnStatement;
-import io.github.danthe1st.yagpl.api.Statement;
+import io.github.danthe1st.yagpl.api.concrete.debug.LambdaExpression;
+import io.github.danthe1st.yagpl.api.concrete.debug.LambdaStatement;
+import io.github.danthe1st.yagpl.api.concrete.debug.PrintArgsStatement;
 import io.github.danthe1st.yagpl.api.concrete.debug.PrintFunctionContext;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
-public class YAGPLTest {
+public class YAGPLTest {//NOSONAR this is a main class, I don't use JUnit or similar (yet)
 	/**
 	 * expected:
 	 * OUT: [] --> no parameters because of new String[0]
@@ -30,13 +30,13 @@ public class YAGPLTest {
 	 */
 	public static void main(String[] args) {
 		List<Map.Entry<GenericObject<?,String>,String[]>> op=new ArrayList<>();
-		op.add(new AbstractMap.SimpleEntry<>(new Statement<>("stmt-sout", params->System.out.println(Arrays.toString(params))), new String[0]));
-		op.add(new AbstractMap.SimpleEntry<>(new Assignment<>("assign", "variableToPrint"), new String[] {"param0"}));
+		op.add(new AbstractMap.SimpleEntry<>(new PrintArgsStatement<>(), new String[0]));
+		op.add(new AbstractMap.SimpleEntry<>(new Assignment<>(), new String[] {"variableToPrint","param0"}));
 		op.add(new AbstractMap.SimpleEntry<>(new PrintFunctionContext<>(), new String[0]));
-		op.add(new AbstractMap.SimpleEntry<>(new Statement<>("stmt-sout", params->System.out.println(Arrays.toString(params))), new String[] {"variableToPrint"}));
-		op.add(new AbstractMap.SimpleEntry<>(new ReturnStatement<>("ret", new Expression<>("get-ret", p->"Hello"+p[0])),new String[] {"variableToPrint"}));
-		op.add(new AbstractMap.SimpleEntry<>(new Statement<>("stmt-sout", params->System.err.println("THIS SHOULD NOT BE PRINTED")), new String[0]));
-		Function<String, Void> main=new Function<>("func-main", op);
+		op.add(new AbstractMap.SimpleEntry<>(new PrintArgsStatement<>(), new String[] {"variableToPrint"}));
+		op.add(new AbstractMap.SimpleEntry<>(new ReturnStatement<>(new LambdaExpression<>("get-ret", p->"Hello"+p[0])),new String[] {"variableToPrint"}));
+		op.add(new AbstractMap.SimpleEntry<>(new LambdaStatement<>("sout", params->System.err.println("THIS SHOULD NOT BE PRINTED")), new String[0]));
+		Function<String, Void> main=new Function<>("main", op);
 		
 		FunctionContext<Void> ctx=new FunctionContext<>();
 		try {

@@ -6,7 +6,7 @@ import io.github.danthe1st.yagpl.api.Statement;
 public class PrintFunctionContext<C> extends Statement<C>{
 
 	public PrintFunctionContext() {
-		super("debug-printCTX", null);
+		super("debug-printCTX", null,new Class<?>[] {});
 	}
 
 	@Override
