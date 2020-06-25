@@ -26,7 +26,7 @@ public class Function<R,C> extends GenericObjectAdapter<R,C>{
 
 	@Override
 	public R execute(FunctionContext<C> outerCtx, Object... params) throws YAGPLException {
-		FunctionContext<R> innerCtx=new FunctionContext<>();
+		FunctionContext<R> innerCtx=new FunctionContext<>(outerCtx);
 		for (int i = 0; i < params.length; i++) {
 			innerCtx.setVariable("param"+i, params[i]);
 		}

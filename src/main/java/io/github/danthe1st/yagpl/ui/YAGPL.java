@@ -5,15 +5,18 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.github.danthe1st.yagpl.api.Assignment;
 import io.github.danthe1st.yagpl.api.Function;
 import io.github.danthe1st.yagpl.api.GenericObject;
+import io.github.danthe1st.yagpl.api.GlobalContext;
 import io.github.danthe1st.yagpl.api.ReturnStatement;
 import io.github.danthe1st.yagpl.api.concrete.debug.LambdaExpression;
 import io.github.danthe1st.yagpl.api.concrete.debug.LambdaStatement;
 import io.github.danthe1st.yagpl.api.concrete.debug.PrintArgsStatement;
 import io.github.danthe1st.yagpl.api.concrete.debug.PrintFunctionContext;
+import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.ui.controller.Controller;
 import io.github.danthe1st.yagpl.ui.controller.EditorController;
 import javafx.application.Application;
@@ -23,6 +26,9 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class YAGPL extends Application{
+	
+	private GlobalContext globalCtx=new GlobalContext();
+	
 	public static void main(String[] args) {
 		Application.launch(args);
 	}
@@ -37,12 +43,21 @@ public class YAGPL extends Application{
 		op.add(new AbstractMap.SimpleEntry<>(new PrintArgsStatement<>(), new String[] {"variableToPrint"}));
 		op.add(new AbstractMap.SimpleEntry<>(new ReturnStatement<>(new LambdaExpression<>("get-ret", p->"Hello"+p[0])),new String[] {"variableToPrint"}));
 		op.add(new AbstractMap.SimpleEntry<>(new LambdaStatement<>("sout", params->System.err.println("THIS SHOULD NOT BE PRINTED")), new String[0]));
-		Function<String, Void> main=new Function<>("main", op,new Class<?>[] {String.class});
+		Function<String, Void> main=new Function<>("main", op,new Class<?>[] {Object.class});
 		
 		//FunctionContext<Void> ctx=new FunctionContext<>();
 		
+		
 		EditorController ctl=loadView("Editor");
 		ctl.addFunction(main);
+		ctl.setGlobalContext(globalCtx);
+		ctl.setAvailableElements(op.stream().map(entry->{
+			try {
+				return new AbstractMap.SimpleEntry<>(entry.getKey().createCopy(), entry.getValue());
+			} catch (YAGPLException e) {
+				throw new RuntimeException(e);
+			}
+		}).collect(Collectors.toMap(Map.Entry::getKey,Map.Entry::getValue)));
 		primaryStage.setScene(new Scene(ctl.getView()));
 		primaryStage.show();
 	}
@@ -52,6 +67,7 @@ public class YAGPL extends Application{
 		C ctl = loader.getController();
 		ctl.setView(editor);
 		ctl.setMain(this);
+		ctl.setGlobalContext(globalCtx);
 		return ctl;
 	}
 }

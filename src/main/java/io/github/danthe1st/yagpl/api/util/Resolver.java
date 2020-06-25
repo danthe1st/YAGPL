@@ -3,12 +3,13 @@ package io.github.danthe1st.yagpl.api.util;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.github.danthe1st.yagpl.api.FunctionContext;
+import io.github.danthe1st.yagpl.api.Context;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 
 public class Resolver {
-	//TODO keywords
+	//TODO keywords like null
 	private static Map<Character, LambdaResolver> resolvers=new HashMap<>();
+	private static Map<String, Object> keywordResolvers=new HashMap<>();
 	static {
 		resolvers.put('"',toResolve->{
 			if(toResolve.endsWith("\"")) {
@@ -16,13 +17,35 @@ public class Resolver {
 			}
 			throw new NotResolveableException(toResolve);
 		});
+		for (char i = '0'; i <= '9'; i++) {
+			resolvers.put(i, toResolve->{
+				try {
+					if(toResolve.endsWith("l")||toResolve.endsWith("L")) {
+						return Long.valueOf(toResolve.substring(0, toResolve.length()-1));
+					}else {
+						return Integer.valueOf(toResolve);
+					}
+				}catch(NumberFormatException e) {
+					throw new NotResolveableException(e);
+				}
+				
+			});
+		}
+		keywordResolvers.put("null", null);
 	}
-	public static Object resolveVariable(FunctionContext<?> ctx,String toResolve) throws NotResolveableException {
+	public static Object resolveVariable(Context ctx,String toResolve) throws NotResolveableException {
 		Object ret=null;
 		char firstChar=toResolve.charAt(0);
 		LambdaResolver res = resolvers.get(firstChar);
 		if(res==null) {
-			ret=ctx.getVariable(toResolve);
+			if(keywordResolvers.containsKey(toResolve)) {
+				ret=keywordResolvers.get(toResolve);
+			}
+			else if(ctx.hasVariable(toResolve)) {
+				ret=ctx.getVariable(toResolve);
+			}else {
+				throw new NotResolveableException(toResolve);
+			}
 		}else {
 			ret=res.resolve(toResolve);
 		}

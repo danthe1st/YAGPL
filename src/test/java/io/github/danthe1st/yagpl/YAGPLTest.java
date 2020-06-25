@@ -9,6 +9,7 @@ import io.github.danthe1st.yagpl.api.Assignment;
 import io.github.danthe1st.yagpl.api.Function;
 import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.GenericObject;
+import io.github.danthe1st.yagpl.api.GlobalContext;
 import io.github.danthe1st.yagpl.api.ReturnStatement;
 import io.github.danthe1st.yagpl.api.concrete.debug.LambdaExpression;
 import io.github.danthe1st.yagpl.api.concrete.debug.LambdaStatement;
@@ -38,7 +39,7 @@ public class YAGPLTest {//NOSONAR this is a main class, I don't use JUnit or sim
 		op.add(new AbstractMap.SimpleEntry<>(new LambdaStatement<>("sout", params->System.err.println("THIS SHOULD NOT BE PRINTED")), new String[0]));
 		Function<String, Void> main=new Function<>("main", op);
 		
-		FunctionContext<Void> ctx=new FunctionContext<>();
+		FunctionContext<Void> ctx=new FunctionContext<>(new GlobalContext());
 		try {
 			String ret = main.execute(ctx,1337);
 			System.out.println(ret);

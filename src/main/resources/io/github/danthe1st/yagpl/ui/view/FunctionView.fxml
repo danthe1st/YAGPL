@@ -5,13 +5,12 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.Pane?>
 
-
-<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.danthe1st.yagpl.ui.controller.FunctionViewController">
+<BorderPane style="-fx-border-color: black;" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.danthe1st.yagpl.ui.controller.FunctionViewController">
    <top>
       <Label fx:id="title" alignment="CENTER" maxWidth="1.7976931348623157E308" onMouseClicked="#onClick" text="&lt;title&gt;" BorderPane.alignment="CENTER" />
    </top>
    <left>
-      <Pane prefHeight="200.0" prefWidth="40.0" BorderPane.alignment="CENTER" />
+      <Pane prefHeight="200.0" prefWidth="18.0" BorderPane.alignment="CENTER" />
    </left>
    <center>
       <ListView fx:id="operationBox" onDragDetected="#dragOut" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER" />

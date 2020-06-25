@@ -13,5 +13,5 @@ public interface GenericObject<R,C> {
 	String getName();
 	Class<?>[] getExpectedParameters();//if null-->any params valid
 	R execute(FunctionContext<C> ctx,Object... params) throws YAGPLException;
-	
+	<T>GenericObject<R,T> createCopy() throws YAGPLException;
 }
