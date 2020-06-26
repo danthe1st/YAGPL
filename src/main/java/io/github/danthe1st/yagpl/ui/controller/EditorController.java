@@ -30,7 +30,8 @@ import javafx.scene.text.FontWeight;
 
 public class EditorController extends ControllerAdapter<AnchorPane> implements Initializable {
 
-	private Map<GenericObject<?, ?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK,ReferenceStrength.WEAK);
+	private Map<GenericObject<?, ?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK,
+			ReferenceStrength.WEAK);
 
 	@FXML
 	private ListView<Map.Entry<GenericObject<?, ?>, String[]>> availableElementView;
@@ -89,31 +90,26 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 	}
 
 	private void allowCopyDrag(GenericObject<?, ?> obj, String[] params) {
-		Node outerNode=getUIElement(obj, params);
+		Node outerNode = getUIElement(obj, params);
 		outerNode.setOnMousePressed(e -> {
 			final Delta dragDelta = new Delta();
 			try {
 				Node node = getUIElement(obj.createCopy(), params);
-				editorPane.getChildren().add(node);
-				allowDrag(node);
-				dragDelta.x = node.getLayoutX() - e.getSceneX();
-				dragDelta.y = node.getLayoutY() - e.getSceneY();
+				addElementToPaneAndFillDeltaWithPosition(dragDelta, node, editorPane, e);
 				outerNode.setOnMouseDragged(evt -> {
-					node.setLayoutX(dragDelta.x+evt.getSceneX());
-					node.setLayoutY(calculateDrag(dragDelta.y, evt.getSceneY(), 0));
+					node.setLayoutX(dragDelta.getX() + evt.getSceneX());
+					node.setLayoutY(calculateDrag(dragDelta.getY(), evt.getSceneY(), 0));
 				});
-				node.setOnMouseReleased(evt->{
-					if(node.getLayoutX()<0) {
-						((Pane)node.getParent()).getChildren().remove(node);//TODO test with instanceOf
+				outerNode.setOnMouseReleased(evt -> {
+					if (!removeIfTooFarLeft(node)) {
+						allowDrag(node);
 					}
 				});
-				
+
 			} catch (YAGPLException e1) {
-				error("Cannot create copy",e1);
+				error("Cannot create copy", e1);
 			}
-
 		});
-
 	}
 
 	@Override
@@ -127,5 +123,9 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 				}
 			}
 		});
+	}
+
+	public Pane getEditorPane() {
+		return editorPane;
 	}
 }

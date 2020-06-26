@@ -45,9 +45,6 @@ public class YAGPL extends Application{
 		op.add(new AbstractMap.SimpleEntry<>(new LambdaStatement<>("sout", params->System.err.println("THIS SHOULD NOT BE PRINTED")), new String[0]));
 		Function<String, Void> main=new Function<>("main", op,new Class<?>[] {Object.class});
 		
-		//FunctionContext<Void> ctx=new FunctionContext<>();
-		
-		
 		EditorController ctl=loadView("Editor");
 		ctl.addFunction(main);
 		ctl.setGlobalContext(globalCtx);
