@@ -1,7 +1,10 @@
 package io.github.danthe1st.yagpl.ui.controller;
 
 import java.net.URL;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -15,6 +18,8 @@ import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -39,7 +44,18 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 
 	private Function<R, ?> function;
 	private EditorController editor;
-
+    public boolean addIfIntersects(MouseEvent event,List<Map.Entry<GenericObject<?, R>, String[]>> operationsToAdd) {
+    	Coord coord = getAbsoluteCoord(operationBox);
+    	Bounds bounds=new BoundingBox(coord.getX(), coord.getY(), operationBox.getWidth(), operationBox.getHeight());
+    	if(bounds.intersects(event.getSceneX(), event.getSceneY(), 0, 0)) {
+    		int index=Math.min((int)((event.getSceneY()-coord.getY())/24),operationBox.getItems().size());
+    		operationBox.getItems().addAll(index,operationsToAdd);
+    		initialize(null, null);
+    		return true;
+    	}else {
+    		return false;
+    	}
+    }
 	public void setEditor(EditorController editor) {
 		this.editor = editor;
 	}
@@ -49,6 +65,7 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 		title.setText(function.getName());
 		operationBox.getItems().clear();
 		operationBox.getItems().addAll(function.getOperations());
+		function.setOperations(operationBox.getItems());
 	}
 
 	@Override
@@ -64,6 +81,7 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 						VBox box=new VBox();
 						boolean take=false;
 						Iterator<Entry<GenericObject<?, R>, String[]>> operationIterator = operationBox.getItems().iterator();
+						List<Map.Entry<GenericObject<?, ?>, String[]>> elementsInBox=new ArrayList<>();
 						while(operationIterator.hasNext()) {
 							Entry<GenericObject<?, R>, String[]> operation=operationIterator.next();
 							if(!take&&item==operation) {
@@ -71,17 +89,19 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 							}
 							if(take) {
 								Node uiElement=editor.getUIElement(operation.getKey(), operation.getValue());
+								elementsInBox.add(new AbstractMap.SimpleEntry<>(operation.getKey(), operation.getValue()));
 								uiElement.setOnMousePressed(null);
 								box.getChildren().add(uiElement);
 								operationIterator.remove();
 							}
 						}
-						Delta delta=new Delta();
+						Coord delta=new Coord();
 						addElementToPaneAndFillDeltaWithPosition(delta, box, editor.getEditorPane(), e);
 						setDragUpdate(box, delta);
 						box.setOnMouseReleased(evt->{
 							removeIfTooFarLeft(box);
 							allowDrag(box);
+							editor.allowDrop(box, elementsInBox);
 						});
 						initialize(null,null);//setCellFactory-->workaround for weird bug with ListView
 					});

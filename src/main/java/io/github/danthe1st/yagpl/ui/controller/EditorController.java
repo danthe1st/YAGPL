@@ -2,6 +2,11 @@ package io.github.danthe1st.yagpl.ui.controller;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -19,6 +24,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderStroke;
@@ -32,6 +38,8 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 
 	private Map<GenericObject<?, ?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK,
 			ReferenceStrength.WEAK);
+
+	private Map<String, FunctionViewController<?>> functions = new ReferenceMap<>(ReferenceStrength.WEAK, ReferenceStrength.WEAK);
 
 	@FXML
 	private ListView<Map.Entry<GenericObject<?, ?>, String[]>> availableElementView;
@@ -49,6 +57,7 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		nodeIndex.put(func, functionView.getView());
 		editorPane.getChildren().add(functionView.getView());
 		allowDrag(functionView.getView());
+		functions.put(func.getName(), functionView);
 	}
 
 	public Node getUIElement(GenericObject<?, ?> obj, String[] params) {
@@ -92,24 +101,54 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 	private void allowCopyDrag(GenericObject<?, ?> obj, String[] params) {
 		Node outerNode = getUIElement(obj, params);
 		outerNode.setOnMousePressed(e -> {
-			final Delta dragDelta = new Delta();
+			final Coord dragDelta = new Coord();
 			try {
-				Node node = getUIElement(obj.createCopy(), params);
+				GenericObject<?, ?> copy = obj.createCopy();
+				Node node = getUIElement(copy, params);
+				node.setOnMouseDragOver(System.out::println);
 				addElementToPaneAndFillDeltaWithPosition(dragDelta, node, editorPane, e);
+
 				outerNode.setOnMouseDragged(evt -> {
 					node.setLayoutX(dragDelta.getX() + evt.getSceneX());
 					node.setLayoutY(calculateDrag(dragDelta.getY(), evt.getSceneY(), 0));
 				});
 				outerNode.setOnMouseReleased(evt -> {
-					if (!removeIfTooFarLeft(node)) {
-						allowDrag(node);
-					}
+					drop(node,evt,Arrays.asList(new AbstractMap.SimpleEntry<>(copy, params)));
 				});
+				allowDrag(node);
 
 			} catch (YAGPLException e1) {
 				error("Cannot create copy", e1);
 			}
 		});
+	}
+	public void allowDrop(Node node,List<Map.Entry<GenericObject<?, ?>, String[]>> toDrop) {
+		node.setOnMouseReleased(evt -> {
+			drop(node,evt,toDrop);
+		});
+	}
+	public void drop(Node prevNode,MouseEvent evt,List<Map.Entry<GenericObject<?, ?>, String[]>> toDrop) {
+		Iterator<FunctionViewController<?>> funcIter = functions.values().iterator();
+		boolean goOn=true;
+		while(goOn&&funcIter.hasNext()) {
+			FunctionViewController<?> funcView = funcIter.next();
+			try {
+				goOn=!addCopiesToFuncViewIfIntersects(evt,funcView,toDrop);
+			} catch (YAGPLException e1) {
+				e1.printStackTrace();//TODO
+			}
+		}
+		if(!goOn) {
+			editorPane.getChildren().remove(prevNode);
+		}
+	}
+
+	private static <T> boolean addCopiesToFuncViewIfIntersects(MouseEvent evt,FunctionViewController<T> ctl,List<Map.Entry<GenericObject<?, ?>, String[]>> toAdd) throws YAGPLException {
+		List<Map.Entry<GenericObject<?, T>, String[]>> toAddChanged=new ArrayList<>();
+		for(Map.Entry<GenericObject<?, ?>, String[]> add:toAdd) {
+			toAddChanged.add(new AbstractMap.SimpleEntry<>(add.getKey().createCopy(), add.getValue()));
+		}
+		return ctl.addIfIntersects(evt, toAddChanged);
 	}
 
 	@Override
@@ -128,4 +167,5 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 	public Pane getEditorPane() {
 		return editorPane;
 	}
+
 }

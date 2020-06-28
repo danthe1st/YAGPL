@@ -13,6 +13,6 @@
       <Pane prefHeight="200.0" prefWidth="18.0" BorderPane.alignment="CENTER" />
    </left>
    <center>
-      <ListView fx:id="operationBox" BorderPane.alignment="CENTER" />
+      <ListView fx:id="operationBox" editable="true" BorderPane.alignment="CENTER" />
    </center>
 </BorderPane>

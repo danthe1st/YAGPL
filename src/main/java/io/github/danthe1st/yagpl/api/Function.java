@@ -3,9 +3,11 @@ package io.github.danthe1st.yagpl.api;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
+import javafx.collections.ObservableList;
 
 //TODO expected arguments? --> names
 
@@ -44,6 +46,9 @@ public class Function<R,C> extends GenericObjectAdapter<R,C>{
 	}
 	public List<Map.Entry<GenericObject<?, R>, String[]>> getOperations() {
 		return operations;
+	}
+	public void setOperations(ObservableList<Entry<GenericObject<?, R>, String[]>> operations) {
+		this.operations=operations;
 	}
 	
 }

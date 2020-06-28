@@ -45,26 +45,30 @@ public abstract class ControllerAdapter<T extends Parent> implements Controller<
 	
 	protected void allowDrag(Node node) {
 		// Custom object to hold x and y positions
-		final Delta dragDelta = new Delta();
+		final Coord dragDelta = new Coord();
 
 		node.setOnMousePressed(e -> fillDeltaWithNodePosition(dragDelta,node,e));
 		setDragUpdate(node,dragDelta);
 		node.setOnMouseReleased(e->removeIfTooFarLeft(node));
 	}
-	protected void setDragUpdate(Node node, Delta dragDelta) {
+	protected void setDragUpdate(Node node, Coord dragDelta) {
 		node.setOnMouseDragged(e -> {
 			node.setLayoutX(dragDelta.x+e.getSceneX());
 			node.setLayoutY(calculateDrag(dragDelta.y,e.getSceneY(),0));
 		});
 	}
-	protected void addElementToPaneAndFillDeltaWithPosition(Delta delta,Node node, Pane pane,MouseEvent e) {
-		pane.getChildren().add(node);
+	protected Coord getAbsoluteCoord(Node node){
 		Bounds boundsInScene=node.localToScene(node.getBoundsInLocal());
-		node.setLayoutX(e.getSceneX()-boundsInScene.getMinX());
-		node.setLayoutY(e.getSceneY()-boundsInScene.getMinY());
+		return new Coord(boundsInScene.getMinX(), boundsInScene.getMinY());
+	}
+	protected void addElementToPaneAndFillDeltaWithPosition(Coord delta,Node node, Pane pane,MouseEvent e) {
+		pane.getChildren().add(node);
+		Coord coord=getAbsoluteCoord(node);
+		node.setLayoutX(e.getSceneX()-coord.x);
+		node.setLayoutY(e.getSceneY()-coord.y);
 		fillDeltaWithNodePosition(delta,node,e);
 	}
-	protected void fillDeltaWithNodePosition(Delta delta, Node node,MouseEvent e) {
+	protected void fillDeltaWithNodePosition(Coord delta, Node node,MouseEvent e) {
 		delta.x = node.getLayoutX() - e.getSceneX();
 		delta.y = node.getLayoutY() - e.getSceneY();
 	}
@@ -80,9 +84,16 @@ public abstract class ControllerAdapter<T extends Parent> implements Controller<
 		return Math.max(prevLayout+change,min);
 	}
 
-	protected static class Delta {
+	protected static class Coord {
 		private double x;
 		private double y;
+		public Coord() {
+			//default constructor
+		}
+		public Coord(double x,double y) {
+			this.x=x;
+			this.y=y;
+		}
 		public double getX() {
 			return x;
 		}
