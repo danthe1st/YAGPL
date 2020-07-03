@@ -1,10 +1,11 @@
 package io.github.danthe1st.yagpl.api;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
-public class ParameterizedGenericObject<T,C> {//TODO expression, object, ... -->proper name
+public class ParameterizedGenericObject<T,C> implements Serializable {//TODO expression, object, ... -->proper name
 	private GenericObject<T,C> obj;
 	private String[] params;
 

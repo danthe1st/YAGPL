@@ -36,6 +36,9 @@ public abstract class GenericObjectAdapter<R, C> implements GenericObject<R, C>,
 	public String getName() {
 		return name;
 	}
+	public void setName(String name) {
+		this.name = name;
+	}
 	@Override
 	public int hashCode() {
 		return Objects.hash(id);

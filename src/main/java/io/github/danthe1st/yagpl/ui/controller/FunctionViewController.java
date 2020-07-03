@@ -1,5 +1,8 @@
 package io.github.danthe1st.yagpl.ui.controller;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -12,9 +15,6 @@ import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
-import javafx.beans.binding.DoubleBinding;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -46,12 +46,15 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 	private Function<R, ?> function;
 	private EditorController editor;
 
+	
+	
 	public boolean addIfIntersects(MouseEvent event, List<ParameterizedGenericObject<?, R>> operationsToAdd) {
 		Coord coord = getAbsoluteCoord(operationBox);
 		Bounds bounds = new BoundingBox(coord.getX(), coord.getY(), operationBox.getWidth(), operationBox.getHeight());
 		if (bounds.intersects(event.getSceneX(), event.getSceneY(), 0, 0)) {
 			int index = Math.min((int) ((event.getSceneY() - coord.getY()) / 24), operationBox.getItems().size());
 			operationBox.getItems().addAll(index, operationsToAdd);
+			function.getOperations().addAll(index, operationsToAdd);
 			initialize(null, null);
 			return true;
 		} else {
@@ -68,7 +71,7 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 		title.setText(function.getName());
 		operationBox.getItems().clear();
 		operationBox.getItems().addAll(function.getOperations());
-		function.setOperations(operationBox.getItems());
+		//function.setOperations(operationBox.getItems());
 	}
 
 	@Override
@@ -165,5 +168,13 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 				error("An error occured while executing the function", e);
 			}
 		}
+	}
+
+	public void save(ObjectOutputStream oos) throws IOException {
+		oos.writeObject(function);
+	}
+	@SuppressWarnings("unchecked")
+	public void load(ObjectInputStream ois) throws ClassNotFoundException, IOException {
+		setFunction((Function<R, ?>) ois.readObject());
 	}
 }

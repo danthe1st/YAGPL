@@ -36,20 +36,10 @@ public class YAGPL extends Application{
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		
-		List<ParameterizedGenericObject<?, String>> op=new ArrayList<>();
-		op.add(new ParameterizedGenericObject<>(new PrintArgsStatement<>(), new String[0]));
-		op.add(new ParameterizedGenericObject<>(new Assignment<>(), new String[] {"\"variableToPrint\"","param0"}));
-		op.add(new ParameterizedGenericObject<>(new PrintFunctionContext<>(), new String[0]));
-		op.add(new ParameterizedGenericObject<>(new PrintArgsStatement<>(), new String[] {"variableToPrint"}));
-		op.add(new ParameterizedGenericObject<>(new ReturnStatement<>(new LambdaExpression<>("get-ret", p->"Hello"+p[0])),new String[] {"variableToPrint"}));
-		op.add(new ParameterizedGenericObject<>(new LambdaStatement<>("sout", params->System.err.println("THIS SHOULD NOT BE PRINTED")), new String[0]));
-		Function<String, Void> main=new Function<>("main", op,new Class<?>[] {Object.class});
-		
 		EditorController ctl=loadView("Editor");
-		ctl.addFunction(main);
 		ctl.setGlobalContext(globalCtx);
 		ctl.setAvailableElements(load());
+		ctl.load();
 		primaryStage.setScene(new Scene(ctl.getView()));
 		primaryStage.show();
 	}

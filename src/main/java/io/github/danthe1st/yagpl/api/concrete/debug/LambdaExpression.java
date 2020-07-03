@@ -1,12 +1,11 @@
 package io.github.danthe1st.yagpl.api.concrete.debug;
 
-import java.util.function.Function;
-
 import io.github.danthe1st.yagpl.api.Expression;
+import io.github.danthe1st.yagpl.api.lambdas.SerializableFunction;
 
 public class LambdaExpression<R, C> extends Expression<R, C> {
 
-	public LambdaExpression(String name, Function<Object[], R> action) {
+	public LambdaExpression(String name, SerializableFunction<Object[], R> action) {
 		super("lambda-e-"+name, action);
 	}
 

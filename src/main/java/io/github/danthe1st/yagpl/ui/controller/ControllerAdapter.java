@@ -2,6 +2,7 @@ package io.github.danthe1st.yagpl.ui.controller;
 
 import io.github.danthe1st.yagpl.api.GlobalContext;
 import io.github.danthe1st.yagpl.ui.YAGPL;
+import javafx.application.Platform;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -41,6 +42,11 @@ public abstract class ControllerAdapter<T extends Parent> implements Controller<
 	public void error(String text,Exception e) {
 		error(text);
 		e.printStackTrace();
+	}
+	public void fatal(String text,Exception e) {
+		error(text);
+		e.printStackTrace();
+		Platform.exit();
 	}
 	
 	protected void allowDrag(Node node) {

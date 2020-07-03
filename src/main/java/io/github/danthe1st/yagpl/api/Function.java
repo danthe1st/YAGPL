@@ -1,19 +1,23 @@
 package io.github.danthe1st.yagpl.api;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
 
 //TODO expected arguments? --> names
-
+@StandardElement
 public class Function<R,C> extends GenericObjectAdapter<R,C>{
 	//List of 
 	//- action
 	//- array of params of that action
 	private List<ParameterizedGenericObject<?, R>> operations;
-
+	public Function() {
+		this("empty-"+UUID.randomUUID().toString(),new ArrayList<>());
+	}
 	public Function(String name,List<ParameterizedGenericObject<?, R>> operations) {
 		super("func-"+name);
 		this.operations=operations;
@@ -37,7 +41,8 @@ public class Function<R,C> extends GenericObjectAdapter<R,C>{
 			for (int i = 0; i < paramsNamesToPass.length; i++) {
 				paramsToPass[i]=Resolver.resolveVariable(innerCtx, paramsNamesToPass[i]);
 			}
-			next.getObj().execute(innerCtx,paramsToPass);
+			Object returnValue = next.getObj().execute(innerCtx,paramsToPass);
+			innerCtx.setVariable("$?", returnValue);
 		}
 		return innerCtx.getReturn();
 	}
@@ -47,5 +52,10 @@ public class Function<R,C> extends GenericObjectAdapter<R,C>{
 	public void setOperations(List<ParameterizedGenericObject<?, R>> operations) {//TODO not use that in UI but change it manually
 		this.operations=operations;
 	}
-	
+	@Override
+	public <T> GenericObject<R, T> createCopy() throws YAGPLException {
+		GenericObjectAdapter<R, T> copy=(GenericObjectAdapter<R, T>)super.createCopy();
+		copy.setName("func-"+UUID.randomUUID().toString());
+		return copy;
+	}
 }
