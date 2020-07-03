@@ -1,26 +1,24 @@
 package io.github.danthe1st.yagpl.ui.controller;
 
 import java.net.URL;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
 import io.github.danthe1st.yagpl.api.Function;
 import io.github.danthe1st.yagpl.api.FunctionContext;
-import io.github.danthe1st.yagpl.api.GenericObject;
+import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
-import io.github.danthe1st.yagpl.api.util.Resolver;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonBar.ButtonData;
@@ -28,10 +26,10 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 public class FunctionViewController<R> extends ControllerAdapter<BorderPane> implements Initializable {
@@ -40,22 +38,24 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 	private Label title;
 
 	@FXML
-	private ListView<Map.Entry<GenericObject<?, R>, String[]>> operationBox;
+	private ListView<ParameterizedGenericObject<?, R>> operationBox;
 
 	private Function<R, ?> function;
 	private EditorController editor;
-    public boolean addIfIntersects(MouseEvent event,List<Map.Entry<GenericObject<?, R>, String[]>> operationsToAdd) {
-    	Coord coord = getAbsoluteCoord(operationBox);
-    	Bounds bounds=new BoundingBox(coord.getX(), coord.getY(), operationBox.getWidth(), operationBox.getHeight());
-    	if(bounds.intersects(event.getSceneX(), event.getSceneY(), 0, 0)) {
-    		int index=Math.min((int)((event.getSceneY()-coord.getY())/24),operationBox.getItems().size());
-    		operationBox.getItems().addAll(index,operationsToAdd);
-    		initialize(null, null);
-    		return true;
-    	}else {
-    		return false;
-    	}
-    }
+
+	public boolean addIfIntersects(MouseEvent event, List<ParameterizedGenericObject<?, R>> operationsToAdd) {
+		Coord coord = getAbsoluteCoord(operationBox);
+		Bounds bounds = new BoundingBox(coord.getX(), coord.getY(), operationBox.getWidth(), operationBox.getHeight());
+		if (bounds.intersects(event.getSceneX(), event.getSceneY(), 0, 0)) {
+			int index = Math.min((int) ((event.getSceneY() - coord.getY()) / 24), operationBox.getItems().size());
+			operationBox.getItems().addAll(index, operationsToAdd);
+			initialize(null, null);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	public void setEditor(EditorController editor) {
 		this.editor = editor;
 	}
@@ -70,40 +70,47 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-		operationBox.setCellFactory(param -> new ListCell<Map.Entry<GenericObject<?, R>, String[]>>() {
+		operationBox.setCellFactory(param -> new ListCell<ParameterizedGenericObject<?, R>>() {
 			@Override
-			protected void updateItem(Map.Entry<GenericObject<?, R>, String[]> item, boolean empty) {
-				if (!empty&&item != null) {
-					Node node = editor.getUIElement(item.getKey(), item.getValue());
-					this.setGraphic(node);
-					node.setOnMousePressed(e->{
-						
-						VBox box=new VBox();
-						boolean take=false;
-						Iterator<Entry<GenericObject<?, R>, String[]>> operationIterator = operationBox.getItems().iterator();
-						List<Map.Entry<GenericObject<?, ?>, String[]>> elementsInBox=new ArrayList<>();
-						while(operationIterator.hasNext()) {
-							Entry<GenericObject<?, R>, String[]> operation=operationIterator.next();
-							if(!take&&item==operation) {
-								take=true;
+			protected void updateItem(ParameterizedGenericObject<?, R> item, boolean empty) {
+				if (!empty && item != null) {
+					Node wholeNode = editor.getUIElement(item);
+					final Node draggableNode;
+					ObservableList<Node> children = ((Parent) wholeNode).getChildrenUnmodifiable();
+					if (wholeNode instanceof HBox && !children.isEmpty()) {
+						draggableNode = children.get(0);
+					} else {
+						draggableNode = wholeNode;
+					}
+					this.setGraphic(wholeNode);
+					draggableNode.setOnMousePressed(e -> {
+						VBox box = new VBox();
+						boolean take = false;
+						Iterator<ParameterizedGenericObject<?, R>> operationIterator = operationBox.getItems().iterator();
+						List<ParameterizedGenericObject<?, ?>> elementsInBox = new ArrayList<>();
+						while (operationIterator.hasNext()) {
+							ParameterizedGenericObject<?, R> operation = operationIterator.next();
+							if (!take && item == operation) {
+								take = true;
 							}
-							if(take) {
-								Node uiElement=editor.getUIElement(operation.getKey(), operation.getValue());
-								elementsInBox.add(new AbstractMap.SimpleEntry<>(operation.getKey(), operation.getValue()));
+							if (take) {
+								Node uiElement = editor.getUIElement(operation);
+								elementsInBox.add(operation);
 								uiElement.setOnMousePressed(null);
 								box.getChildren().add(uiElement);
 								operationIterator.remove();
 							}
 						}
-						Coord delta=new Coord();
+						Coord delta = new Coord();
 						addElementToPaneAndFillDeltaWithPosition(delta, box, editor.getEditorPane(), e);
 						setDragUpdate(box, delta);
-						box.setOnMouseReleased(evt->{
+						allowDrag(box);
+
+						box.setOnMouseReleased(evt -> {
 							removeIfTooFarLeft(box);
-							allowDrag(box);
 							editor.allowDrop(box, elementsInBox);
 						});
-						initialize(null,null);//setCellFactory-->workaround for weird bug with ListView
+						initialize(null, null);// setCellFactory-->workaround for weird bug with ListView
 					});
 				}
 			}
@@ -112,7 +119,7 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 
 	@FXML
 	void onClick(MouseEvent event) {
-		if (event.getButton()==MouseButton.PRIMARY && event.getClickCount() == 2) {
+		if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
 			Class<?>[] expectedParameters = function.getExpectedParameters();
 			Object[] params;
 			if (expectedParameters == null) {
@@ -120,21 +127,9 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 			} else {
 				params = new Object[expectedParameters.length];
 				for (int i = 0; i < expectedParameters.length; i++) {
-					boolean ex = false;
 					try {
-						TextInputDialog prompt = new TextInputDialog();
-						prompt.setTitle("Function requires parameters");
-						prompt.setHeaderText(
-								"Please resolve parameter " + i + " (" + expectedParameters[i].getSimpleName() + ")");
-						Optional<String> param = prompt.showAndWait();
-						params[i] = param.isPresent() ? Resolver.resolveVariable(globalCtx, param.get()) : null;
-						if (params[i] != null && !expectedParameters[i].isInstance(params[i])) {
-							ex = true;
-						}
+						params[i] = editor.resolveVariable(expectedParameters[i], String.valueOf(i));
 					} catch (NotResolveableException e) {
-						ex = true;
-					}
-					if (ex) {
 						Alert alert = new Alert(AlertType.ERROR, "Cannot be resolved",
 								new ButtonType("set null", ButtonData.APPLY),
 								new ButtonType("retry", ButtonData.BACK_PREVIOUS), ButtonType.CANCEL);

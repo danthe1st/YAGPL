@@ -2,7 +2,7 @@ package io.github.danthe1st.yagpl.api;
 
 import io.github.danthe1st.yagpl.api.throwables.IllegalArgumentCountException;
 import io.github.danthe1st.yagpl.api.throwables.IllegalArgumentTypeException;
-
+@StandardElement
 public class Assignment<C> extends GenericObjectAdapter<Void, C>{
 
 	public Assignment() {

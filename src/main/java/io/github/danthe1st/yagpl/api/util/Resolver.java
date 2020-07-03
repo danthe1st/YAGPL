@@ -34,14 +34,16 @@ public class Resolver {
 		keywordResolvers.put("null", null);
 	}
 	public static Object resolveVariable(Context ctx,String toResolve) throws NotResolveableException {
+		if(toResolve==null) {
+			throw new NotResolveableException(toResolve);
+		}
 		Object ret=null;
 		char firstChar=toResolve.charAt(0);
 		LambdaResolver res = resolvers.get(firstChar);
 		if(res==null) {
 			if(keywordResolvers.containsKey(toResolve)) {
 				ret=keywordResolvers.get(toResolve);
-			}
-			else if(ctx.hasVariable(toResolve)) {
+			}else if(ctx!=null&&ctx.hasVariable(toResolve)) {
 				ret=ctx.getVariable(toResolve);
 			}else {
 				throw new NotResolveableException(toResolve);

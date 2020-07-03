@@ -7,4 +7,5 @@ module io.github.danthe1st.yagpl{
 	requires transitive javafx.graphics;
 	requires javafx.base;
 	requires org.apache.commons.collections4;
+	requires reflections;
 }

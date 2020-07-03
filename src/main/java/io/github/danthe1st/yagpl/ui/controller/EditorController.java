@@ -2,28 +2,34 @@ package io.github.danthe1st.yagpl.ui.controller;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 import org.apache.commons.collections4.map.AbstractReferenceMap.ReferenceStrength;
 import org.apache.commons.collections4.map.ReferenceMap;
 
 import io.github.danthe1st.yagpl.api.Function;
 import io.github.danthe1st.yagpl.api.GenericObject;
+import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
+import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
+import io.github.danthe1st.yagpl.api.util.Resolver;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Border;
@@ -42,9 +48,9 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 	private Map<String, FunctionViewController<?>> functions = new ReferenceMap<>(ReferenceStrength.WEAK, ReferenceStrength.WEAK);
 
 	@FXML
-	private ListView<Map.Entry<GenericObject<?, ?>, String[]>> availableElementView;
+	private ListView<ParameterizedGenericObject<?, ?>> availableElementView;
 
-	private ObservableList<Map.Entry<GenericObject<?, ?>, String[]>> availableElements = FXCollections
+	private ObservableList<ParameterizedGenericObject<?, ?>> availableElements = FXCollections
 			.observableArrayList();
 
 	@FXML
@@ -59,52 +65,104 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		allowDrag(functionView.getView());
 		functions.put(func.getName(), functionView);
 	}
-
-	public Node getUIElement(GenericObject<?, ?> obj, String[] params) {
-		Node element = nodeIndex.get(obj);
+	public Node getUIElement(ParameterizedGenericObject<?, ?> uiExpr) {
+		Node element = nodeIndex.get(uiExpr.getObj());
 		if (element == null) {
 			HBox box = new HBox();
 			box.setSpacing(10);
 			box.setBorder(new Border(new BorderStroke(null, BorderStrokeStyle.SOLID, null, null)));
-			Label label = new Label(obj.getName());
+			Label label = new Label(uiExpr.getObj().getName());
 			label.setFont(Font.font(label.getFont().getFamily(), FontWeight.BOLD, label.getFont().getSize()));
 			box.getChildren().add(label);
-			Class<?>[] expectedParameters = obj.getExpectedParameters();
+			Class<?>[] expectedParameters = uiExpr.getObj().getExpectedParameters();
 			if (expectedParameters == null) {
-				for (String param : params) {
+				for (String param : uiExpr.getParams()) {
 					box.getChildren().add(new Label(param));
 				}
-				box.getChildren().add(new Label("<...>"));
-			} else {
-				for (int i = 0; i < expectedParameters.length; i++) {
-					Class<?> paramCl = expectedParameters[i];
-					String text = "<" + paramCl.getSimpleName() + ">";
-					if (params.length > i && params[i] != null) {
-						text = params[i];
+				Label anyArgsLabel=new Label("<...>");//TODO also for available elements..?
+				anyArgsLabel.setOnMouseClicked(evt->{
+					if(evt.getClickCount()==2) {
+						String varName=loadVariableName(null, "any");
+						System.out.println(box.getParent());
+						copyArrayAndAddElement(uiExpr.getParams(),varName,String[].class);
+						anyArgsLabel.setText(varName);
+						copyArrayAndAddElement(uiExpr.getParams(), varName, String[].class);//TODO set real parameters in function
 					}
-					box.getChildren().add(new Label(text));
+				});
+				
+			} else {
+				
+				for (int i = 0; i < expectedParameters.length; i++) {
+					final int iCopy=i;//FIXME do not work on copy of params but real params..?
+					box.getChildren().add(createParameterLabel(expectedParameters[i],uiExpr.getParams().length>i?uiExpr.getParams()[i]:null,value->uiExpr.getParams()[iCopy]=value));
 				}
+				
 			}
-			nodeIndex.put(obj, box);
+			nodeIndex.put(uiExpr.getObj(), box);
 			element = box;
 		}
-
 		return element;
 	}
-
-	public void setAvailableElements(Map<GenericObject<?, ?>, String[]> available) {
-		availableElements.clear();
-		availableElements.addAll(available.entrySet());
-		available.forEach(this::allowCopyDrag);
+	private <T> T[] copyArrayAndAddElement(T[] arr, T additionalArgument,Class<T[]> cl) {
+		T[] ret=Arrays.copyOf(arr, arr.length+1, cl);
+		ret[arr.length]=additionalArgument;
+		return ret;
+	}
+	public String loadVariableName(Class<?> type,String varName) {
+		TextInputDialog prompt = new TextInputDialog();
+		prompt.setTitle("Variable required");
+		prompt.setHeaderText(
+				"Please resolve variable " + varName + " (" + type.getSimpleName() + ")");
+		Optional<String> varValue = prompt.showAndWait();
+		return varValue.isPresent()&&!"".equals(varValue.get())?varValue.get():null;
+	}
+	public Object resolveVariable(Class<?> type,String varName) throws NotResolveableException {
+		Object ret;
+		TextInputDialog prompt = new TextInputDialog();
+		prompt.setTitle("Variable required");
+		prompt.setHeaderText(
+				"Please resolve variable " + varName + " (" + type.getSimpleName() + ")");
+		Optional<String> varValue = prompt.showAndWait();
+		ret = varValue.isPresent() ? Resolver.resolveVariable(globalCtx, varValue.get()) : null;
+		if (ret != null && !type.isInstance(ret)) {
+			throw new NotResolveableException();
+		}
+		return ret;
+	}
+	private Node createParameterLabel(Class<?> paramClass,String param,Consumer<String> setter) {
+		StringBuilder text;
+		if (param == null) {
+			text=new StringBuilder("<" + paramClass.getSimpleName() + ">");
+		}else {
+			text = new StringBuilder(param);
+		}
+		Label label=new Label(text.toString());
+		label.setOnMouseClicked(evt->{
+			if(evt.getClickCount()==2) {
+				String varName=loadVariableName(paramClass, text.toString());
+				if(varName!=null) {
+					setter.accept(varName);
+					label.setText(varName);
+					text.setLength(varName.length());
+					text.replace(0, varName.length(), varName);
+				}
+			}
+		});
+		return label;
 	}
 
-	private void allowCopyDrag(GenericObject<?, ?> obj, String[] params) {
-		Node outerNode = getUIElement(obj, params);
+	public void setAvailableElements(List<ParameterizedGenericObject<?, ?>> available) {
+		availableElements.clear();
+		availableElements.addAll(available);
+	}
+
+	private void allowCopyDrag(ParameterizedGenericObject<?, ?> uiExpr) {
+		Node outerNode = getUIElement(uiExpr);
 		outerNode.setOnMousePressed(e -> {
 			final Coord dragDelta = new Coord();
 			try {
-				GenericObject<?, ?> copy = obj.createCopy();
-				Node node = getUIElement(copy, params);
+				ParameterizedGenericObject<?, ?> copy = uiExpr.createCopy();
+				Node node = getUIElement(copy);
 				node.setOnMouseDragOver(System.out::println);
 				addElementToPaneAndFillDeltaWithPosition(dragDelta, node, editorPane, e);
 
@@ -113,7 +171,7 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 					node.setLayoutY(calculateDrag(dragDelta.getY(), evt.getSceneY(), 0));
 				});
 				outerNode.setOnMouseReleased(evt -> {
-					drop(node,evt,Arrays.asList(new AbstractMap.SimpleEntry<>(copy, params)));
+					drop(node,evt,Arrays.asList(uiExpr));
 				});
 				allowDrag(node);
 
@@ -122,12 +180,12 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 			}
 		});
 	}
-	public void allowDrop(Node node,List<Map.Entry<GenericObject<?, ?>, String[]>> toDrop) {
+	public <T> void allowDrop(Node node,List<ParameterizedGenericObject<?,?>> toDrop) {
 		node.setOnMouseReleased(evt -> {
 			drop(node,evt,toDrop);
 		});
 	}
-	public void drop(Node prevNode,MouseEvent evt,List<Map.Entry<GenericObject<?, ?>, String[]>> toDrop) {
+	public void drop(Node prevNode,MouseEvent evt,List<ParameterizedGenericObject<?,?>> toDrop) {
 		Iterator<FunctionViewController<?>> funcIter = functions.values().iterator();
 		boolean goOn=true;
 		while(goOn&&funcIter.hasNext()) {
@@ -143,10 +201,10 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		}
 	}
 
-	private static <T> boolean addCopiesToFuncViewIfIntersects(MouseEvent evt,FunctionViewController<T> ctl,List<Map.Entry<GenericObject<?, ?>, String[]>> toAdd) throws YAGPLException {
-		List<Map.Entry<GenericObject<?, T>, String[]>> toAddChanged=new ArrayList<>();
-		for(Map.Entry<GenericObject<?, ?>, String[]> add:toAdd) {
-			toAddChanged.add(new AbstractMap.SimpleEntry<>(add.getKey().createCopy(), add.getValue()));
+	private static <T> boolean addCopiesToFuncViewIfIntersects(MouseEvent evt,FunctionViewController<T> ctl,List<ParameterizedGenericObject<?,?>> toAdd) throws YAGPLException {
+		List<ParameterizedGenericObject<?,T>> toAddChanged=new ArrayList<>();
+		for(ParameterizedGenericObject<?,?> add:toAdd) {
+			toAddChanged.add(add.createCopy());
 		}
 		return ctl.addIfIntersects(evt, toAddChanged);
 	}
@@ -154,11 +212,18 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 		availableElementView.setItems(availableElements);
-		availableElementView.setCellFactory(param -> new ListCell<Map.Entry<GenericObject<?, ?>, String[]>>() {
+		availableElementView.setCellFactory(param -> new ListCell<ParameterizedGenericObject<?, ?>>() {
 			@Override
-			protected void updateItem(Map.Entry<GenericObject<?, ?>, String[]> item, boolean empty) {
-				if (item != null) {
-					this.setGraphic(getUIElement(item.getKey(), item.getValue()));
+			protected void updateItem(ParameterizedGenericObject<?, ?> item, boolean empty) {
+				if (!empty&&item != null) {
+					Node elem=getUIElement(item);
+					if(elem instanceof Parent) {
+						for(Node node:((Parent) elem).getChildrenUnmodifiable()) {
+							node.setOnMouseClicked(null);
+						}
+					}
+					this.setGraphic(elem);
+					allowCopyDrag(item);
 				}
 			}
 		});

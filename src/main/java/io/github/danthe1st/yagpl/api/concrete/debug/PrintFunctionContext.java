@@ -1,8 +1,10 @@
 package io.github.danthe1st.yagpl.api.concrete.debug;
 
 import io.github.danthe1st.yagpl.api.FunctionContext;
+import io.github.danthe1st.yagpl.api.StandardElement;
 import io.github.danthe1st.yagpl.api.Statement;
 
+@StandardElement
 public class PrintFunctionContext<C> extends Statement<C>{
 
 	public PrintFunctionContext() {
