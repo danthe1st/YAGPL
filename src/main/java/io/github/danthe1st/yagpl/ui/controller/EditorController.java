@@ -80,16 +80,14 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 					box.getChildren().add(new Label(param));
 				}
 				Label anyArgsLabel=new Label("<...>");//TODO also for available elements..?
+				box.getChildren().add(anyArgsLabel);
 				anyArgsLabel.setOnMouseClicked(evt->{
 					if(evt.getClickCount()==2) {
-						String varName=loadVariableName(null, "any");
-						System.out.println(box.getParent());
-						copyArrayAndAddElement(uiExpr.getParams(),varName,String[].class);
-						anyArgsLabel.setText(varName);
-						copyArrayAndAddElement(uiExpr.getParams(), varName, String[].class);//TODO set real parameters in function
+						Node newLabel=createParameterLabel(Object.class,null,value->uiExpr.setParams(copyArrayAndAddElement(uiExpr.getParams(),value,String[].class)));
+						box.getChildren().add(box.getChildren().size()-1,newLabel);
+						newLabel.getOnMouseClicked().handle(evt);
 					}
 				});
-				
 			} else {
 				
 				for (int i = 0; i < expectedParameters.length; i++) {
@@ -109,10 +107,11 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		return ret;
 	}
 	public String loadVariableName(Class<?> type,String varName) {
+		String typeName=type==null?"any":type.getSimpleName();
 		TextInputDialog prompt = new TextInputDialog();
 		prompt.setTitle("Variable required");
 		prompt.setHeaderText(
-				"Please resolve variable " + varName + " (" + type.getSimpleName() + ")");
+				"Please resolve variable " + varName + " (" + typeName + ")");
 		Optional<String> varValue = prompt.showAndWait();
 		return varValue.isPresent()&&!"".equals(varValue.get())?varValue.get():null;
 	}
