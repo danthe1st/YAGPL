@@ -54,7 +54,9 @@ public class Function<R,C> extends GenericObjectAdapter<R,C>{
 	}
 	@Override
 	public <T> GenericObject<R, T> createCopy() throws YAGPLException {
-		GenericObjectAdapter<R, T> copy=(GenericObjectAdapter<R, T>)super.createCopy();
+		@SuppressWarnings("unchecked")
+		Function<R, T> copy=(Function<R, T>)super.createCopy();
+		copy.operations=new ArrayList<>();
 		copy.setName("func-"+UUID.randomUUID().toString());
 		return copy;
 	}

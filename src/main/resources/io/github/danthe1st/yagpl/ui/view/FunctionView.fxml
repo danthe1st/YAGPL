@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.Pane?>
 
@@ -13,6 +13,6 @@
       <Pane prefHeight="200.0" prefWidth="18.0" BorderPane.alignment="CENTER" />
    </left>
    <center>
-      <ListView fx:id="operationBox" editable="true" BorderPane.alignment="CENTER" />
+      <AnchorPane fx:id="operationBox" prefWidth="200.0" style="-fx-background-color: #aaaaaa;" BorderPane.alignment="CENTER" />
    </center>
 </BorderPane>

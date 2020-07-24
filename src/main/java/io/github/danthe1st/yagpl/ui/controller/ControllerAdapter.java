@@ -9,7 +9,9 @@ import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 
 public abstract class ControllerAdapter<T extends Parent> implements Controller<T> {
 
@@ -66,6 +68,12 @@ public abstract class ControllerAdapter<T extends Parent> implements Controller<
 	protected Coord getAbsoluteCoord(Node node){
 		Bounds boundsInScene=node.localToScene(node.getBoundsInLocal());
 		return new Coord(boundsInScene.getMinX(), boundsInScene.getMinY());
+	}
+	protected double estimateHeight(Node node,double width) {//TODO also for width
+		if(node instanceof Region) {
+			return ((Region) node).getHeight();
+		}
+		return Math.min(Math.max(node.minHeight(width), node.prefHeight(width)), node.maxHeight(width));
 	}
 	protected void addElementToPaneAndFillDeltaWithPosition(Coord delta,Node node, Pane pane,MouseEvent e) {
 		pane.getChildren().add(node);

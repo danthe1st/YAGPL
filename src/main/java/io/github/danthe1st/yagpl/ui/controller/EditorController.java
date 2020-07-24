@@ -28,9 +28,11 @@ import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
@@ -46,6 +48,7 @@ import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -92,6 +95,7 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 			}
 		}
 	}
+
 	private <R> FunctionViewController<R> loadFunctionElement(Function<R, ?> func) throws IOException {
 		FunctionViewController<R> functionView = main.loadView("FunctionView");
 		functionView.setEditor(this);
@@ -99,8 +103,10 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		nodeIndex.put(func, functionView.getView());
 		allowDrag(functionView.getView());
 		functions.put(func.getName(), functionView);
+		
 		return functionView;
 	}
+
 	public <R> FunctionViewController<R> addFunction(Function<R, ?> func) throws IOException {
 		FunctionViewController<R> functionView = loadFunctionElement(func);
 		editorPane.getChildren().add(functionView.getView());
@@ -112,12 +118,11 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		if (element == null) {
 			if (uiExpr.getObj() instanceof Function) {
 				try {
-					element=loadFunctionElement((Function<?, ?>) uiExpr.getObj()).getView();
+					element = loadFunctionElement((Function<?, ?>) uiExpr.getObj()).getView();
 				} catch (IOException e) {
 					fatal("cannot load function", e);
 				}
 			} else {
-
 				HBox box = new HBox();
 				box.setSpacing(10);
 				box.setBorder(new Border(new BorderStroke(null, BorderStrokeStyle.SOLID, null, null)));
@@ -127,7 +132,8 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 				Class<?>[] expectedParameters = uiExpr.getObj().getExpectedParameters();
 				if (expectedParameters == null) {
 					for (String param : uiExpr.getParams()) {
-						box.getChildren().add(new Label(param));
+						Label l=new Label(param);
+						box.getChildren().add(l);
 					}
 					Label anyArgsLabel = new Label("<...>");// TODO also for available elements..?
 					box.getChildren().add(anyArgsLabel);
@@ -150,11 +156,11 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 					}
 
 				}
+				box.applyCss();
+				box.layout();
 				element = box;
 				nodeIndex.put(uiExpr.getObj(), element);
 			}
-			
-
 		}
 		return element;
 	}
@@ -221,17 +227,15 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 			try {
 				ParameterizedGenericObject<?, ?> copy = uiExpr.createCopy();
 				Node node = getUIElement(copy);
-				node.setOnMouseDragOver(System.out::println);
+
 				addElementToPaneAndFillDeltaWithPosition(dragDelta, node, editorPane, e);
 
 				outerNode.setOnMouseDragged(evt -> {
 					node.setLayoutX(dragDelta.getX() + evt.getSceneX());
 					node.setLayoutY(calculateDrag(dragDelta.getY(), evt.getSceneY(), 0));
 				});
-				outerNode.setOnMouseReleased(evt -> {
-					drop(node, evt, Arrays.asList(uiExpr));
-				});
-				allowDrag(node);
+				allowDragDrop(node, Arrays.asList(uiExpr));
+				outerNode.setOnMouseReleased(evt -> drop(node, evt, Arrays.asList(uiExpr)));
 
 			} catch (YAGPLException e1) {
 				error("Cannot create copy", e1);
@@ -239,15 +243,28 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		});
 	}
 
-	public <T> void allowDrop(Node node, List<ParameterizedGenericObject<?, ?>> toDrop) {
+	public void allowDragDrop(Node node, List<ParameterizedGenericObject<?, ?>> toDrop) {
+		allowDrag(node);
+		allowDrop(node, toDrop);
+	}
+
+	private void allowDrop(Node node, List<ParameterizedGenericObject<?, ?>> toDrop) {
+		EventHandler<? super MouseEvent> oldHandler = node.getOnMouseReleased();
 		node.setOnMouseReleased(evt -> {
+			if (oldHandler != null) {
+				oldHandler.handle(evt);
+			}
+
 			drop(node, evt, toDrop);
 		});
 	}
 
-	public void drop(Node prevNode, MouseEvent evt, List<ParameterizedGenericObject<?, ?>> toDrop) {
+	public void drop(Node node, MouseEvent evt, List<ParameterizedGenericObject<?, ?>> toDrop) {
 		Iterator<FunctionViewController<?>> funcIter = functions.values().iterator();
 		boolean goOn = true;
+		if (toDrop.isEmpty() || toDrop.get(0).getObj() instanceof Function<?, ?>) {
+			return;
+		}
 		while (goOn && funcIter.hasNext()) {
 			FunctionViewController<?> funcView = funcIter.next();
 			try {
@@ -257,7 +274,13 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 			}
 		}
 		if (!goOn) {
-			editorPane.getChildren().remove(prevNode);
+			if (node.getParent() instanceof Pane) {
+				((Pane) node.getParent()).getChildren().remove(node);
+			} else if (!editorPane.getChildren().remove(node)) {
+				System.out.println("Cannot remove: " + node + " from " + node.getParent() + " ("
+						+ node.getParent().getClass().getSuperclass() + ")");
+			}
+
 		}
 	}
 
@@ -278,15 +301,15 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 			protected void updateItem(ParameterizedGenericObject<?, ?> item, boolean empty) {
 				if (!empty && item != null) {
 					Node elem;
-					if(item.getObj() instanceof Function) {
-						if(nodeIndex.containsKey(item.getObj())) {
-							elem=getUIElement(item);
-						}else {
-							elem=new Label("Function");
+					if (item.getObj() instanceof Function) {
+						if (nodeIndex.containsKey(item.getObj())) {
+							elem = getUIElement(item);
+						} else {
+							elem = new Label("Function");
 							nodeIndex.put(item.getObj(), elem);
 						}
-					}else {
-						elem=getUIElement(item);
+					} else {
+						elem = getUIElement(item);
 						if (elem instanceof Parent) {
 							for (Node node : ((Parent) elem).getChildrenUnmodifiable()) {
 								node.setOnMouseClicked(null);

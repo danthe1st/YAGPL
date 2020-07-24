@@ -1,35 +1,35 @@
 package io.github.danthe1st.yagpl.api;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Objects;
 
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
+import io.github.danthe1st.yagpl.api.util.Identifier;
 
 public abstract class GenericObjectAdapter<R, C> implements GenericObject<R, C>,Cloneable {
 	private String name;
 	private Class<?>[] expectedParams = null;
-	private static long currentId = 0L;
-	private long id;
-
-	private static synchronized long getId() {
-		return currentId++;
-	}
-	
-	@Override
-	public Class<?>[] getExpectedParameters() {
-		return expectedParams;
-	}
+	private Identifier id;
 
 	public GenericObjectAdapter(String name) {
 		super();
-		id = getId();
+		id = new Identifier();
 		this.name = name;
 	}
 
 	public GenericObjectAdapter(String name, Class<?>[] expectedParameters) {
 		super();
-		id = getId();
+		id = new Identifier();
 		this.name = name;
 		this.expectedParams = expectedParameters;
+	}
+	
+	@Override
+	public Class<?>[] getExpectedParameters() {
+		return expectedParams;
 	}
 
 	@Override
@@ -41,14 +41,14 @@ public abstract class GenericObjectAdapter<R, C> implements GenericObject<R, C>,
 	}
 	@Override
 	public int hashCode() {
-		return Objects.hash(id);
+		return Objects.hash(this.getClass(),id);
 	}
 	@Override
 	public <T> GenericObject<R, T> createCopy() throws YAGPLException {
 		try {
 			@SuppressWarnings("unchecked")
 			GenericObjectAdapter<R, T> copy=(GenericObjectAdapter<R, T>)clone();
-			copy.id = getId();
+			copy.id = new Identifier();
 			return copy;
 		} catch (CloneNotSupportedException e) {
 			throw new YAGPLException(e);
@@ -56,6 +56,6 @@ public abstract class GenericObjectAdapter<R, C> implements GenericObject<R, C>,
 	}
 	@Override
 	public boolean equals(Object obj) {
-		return obj instanceof GenericObjectAdapter && this.id == ((GenericObjectAdapter<?, ?>) obj).id;
+		return obj!=null&&obj.getClass()==this.getClass() && this.id == ((GenericObjectAdapter<?, ?>) obj).id;
 	}
 }

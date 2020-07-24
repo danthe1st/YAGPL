@@ -18,10 +18,6 @@ public class ParameterizedGenericObject<T,C> implements Serializable {//TODO exp
 	public GenericObject<T,C> getObj() {
 		return obj;
 	}
-
-//	public void setObj(T obj) {
-//		this.obj = obj;
-//	}
 	public String[] getParams() {
 		return params;
 	}
@@ -62,6 +58,11 @@ public class ParameterizedGenericObject<T,C> implements Serializable {//TODO exp
 
 	public <N> ParameterizedGenericObject<T, N> createCopy() throws YAGPLException {
 		return new ParameterizedGenericObject<>(obj.createCopy(), Arrays.copyOf(params,params.length));
+	}
+
+	@Override
+	public String toString() {
+		return "ParameterizedGenericObject [obj=" + obj + ", params=" + Arrays.toString(params) + "]";
 	}
 
 }

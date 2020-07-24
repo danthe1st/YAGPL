@@ -3,21 +3,21 @@ package io.github.danthe1st.yagpl.ui.controller;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.URL;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.ResourceBundle;
 
 import io.github.danthe1st.yagpl.api.Function;
 import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
@@ -27,41 +27,71 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-public class FunctionViewController<R> extends ControllerAdapter<BorderPane> implements Initializable {
+public class FunctionViewController<R> extends ControllerAdapter<BorderPane>{
 
 	@FXML
 	private Label title;
 
 	@FXML
-	private ListView<ParameterizedGenericObject<?, R>> operationBox;
-
+	private AnchorPane operationBox;
+	private List<ParameterizedGenericObject<?, R>> operations=new ArrayList<>();
+	
 	private Function<R, ?> function;
 	private EditorController editor;
-
-	
 	
 	public boolean addIfIntersects(MouseEvent event, List<ParameterizedGenericObject<?, R>> operationsToAdd) {
 		Coord coord = getAbsoluteCoord(operationBox);
 		Bounds bounds = new BoundingBox(coord.getX(), coord.getY(), operationBox.getWidth(), operationBox.getHeight());
 		if (bounds.intersects(event.getSceneX(), event.getSceneY(), 0, 0)) {
-			int index = Math.min((int) ((event.getSceneY() - coord.getY()) / 24), operationBox.getItems().size());
-			operationBox.getItems().addAll(index, operationsToAdd);
+			Map.Entry<Integer, Double> posAndIndex=findIndexAndPositionToInsert(event.getSceneY() - coord.getY());
+			int index = posAndIndex.getKey();
+			operations.addAll(index, operationsToAdd);
 			function.getOperations().addAll(index, operationsToAdd);
-			initialize(null, null);
+			for (int i = 0; i < operationsToAdd.size(); i++) {
+				ParameterizedGenericObject<?, R> op=operationsToAdd.get(i);
+				operationBox.getChildren().add(index+i, editor.getUIElement(op));
+				updateElementListeners(op);
+			}
+			adjustPositionsFrom(index,posAndIndex.getValue());
 			return true;
 		} else {
 			return false;
 		}
 	}
-
+	private void adjustPositionsFrom(int startIndex,double valueAtStartIndex) {
+		System.out.println(operations);
+//		startIndex=0;
+//		valueAtStartIndex=0;
+		operationBox.applyCss();
+		operationBox.layout();
+		ObservableList<Node> children = operationBox.getChildren();
+		for (int i = startIndex; i < children.size(); i++) {
+			Node elem=children.get(i);
+			AnchorPane.setTopAnchor(elem, valueAtStartIndex);
+			valueAtStartIndex+=estimateHeight(elem, 0);
+			System.out.println(valueAtStartIndex);
+		}
+	}
+	
+	private Map.Entry<Integer, Double> findIndexAndPositionToInsert(double posY) {
+		double currentPos=0;
+		int i=0;
+		for (ParameterizedGenericObject<?, R> parameterizedGenericObject : operations) {
+			if((currentPos+=estimateHeight(editor.getUIElement(parameterizedGenericObject), operationBox.getWidth()))>=posY) {
+				break;
+			}
+			i++;
+		}
+		return new AbstractMap.SimpleEntry<>(i, currentPos);
+	}
+	
 	public void setEditor(EditorController editor) {
 		this.editor = editor;
 	}
@@ -69,60 +99,50 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane> imp
 	public void setFunction(Function<R, ?> function) {
 		this.function = function;
 		title.setText(function.getName());
-		operationBox.getItems().clear();
-		operationBox.getItems().addAll(function.getOperations());
-		//function.setOperations(operationBox.getItems());
-	}
-
-	@Override
-	public void initialize(URL location, ResourceBundle resources) {
-		operationBox.setCellFactory(param -> new ListCell<ParameterizedGenericObject<?, R>>() {
-			@Override
-			protected void updateItem(ParameterizedGenericObject<?, R> item, boolean empty) {
-				if (!empty && item != null) {
-					Node wholeNode = editor.getUIElement(item);
-					final Node draggableNode;
-					ObservableList<Node> children = ((Parent) wholeNode).getChildrenUnmodifiable();
-					if (wholeNode instanceof HBox && !children.isEmpty()) {
-						draggableNode = children.get(0);
-					} else {
-						draggableNode = wholeNode;
-					}
-					this.setGraphic(wholeNode);
-					draggableNode.setOnMousePressed(e -> {
-						VBox box = new VBox();
-						boolean take = false;
-						Iterator<ParameterizedGenericObject<?, R>> operationIterator = operationBox.getItems().iterator();
-						List<ParameterizedGenericObject<?, ?>> elementsInBox = new ArrayList<>();
-						while (operationIterator.hasNext()) {
-							ParameterizedGenericObject<?, R> operation = operationIterator.next();
-							if (!take && item == operation) {
-								take = true;
-							}
-							if (take) {
-								Node uiElement = editor.getUIElement(operation);
-								elementsInBox.add(operation);
-								uiElement.setOnMousePressed(null);
-								box.getChildren().add(uiElement);
-								operationIterator.remove();
-							}
-						}
-						Coord delta = new Coord();
-						addElementToPaneAndFillDeltaWithPosition(delta, box, editor.getEditorPane(), e);
-						setDragUpdate(box, delta);
-						allowDrag(box);
-
-						box.setOnMouseReleased(evt -> {
-							removeIfTooFarLeft(box);
-							editor.allowDrop(box, elementsInBox);
-						});
-						initialize(null, null);// setCellFactory-->workaround for weird bug with ListView
-					});
-				}
-			}
+		operations.clear();
+		operations.addAll(function.getOperations());
+		operationBox.getChildren().clear();
+		for (ParameterizedGenericObject<?, R> op : function.getOperations()) {
+			operationBox.getChildren().add(editor.getUIElement(op));
+		}
+		Platform.runLater(()->{
+			adjustPositionsFrom(0, 0);
 		});
 	}
-
+	private void updateElementListeners(ParameterizedGenericObject<?, R> item) {//TODO use wherever element is added
+		Node wholeNode = editor.getUIElement(item);
+		Node draggableNode=wholeNode;
+		if(wholeNode instanceof HBox) {
+			ObservableList<Node> children = ((Parent) wholeNode).getChildrenUnmodifiable();
+			if (!children.isEmpty()) {
+				draggableNode = children.get(0);
+			}
+		}
+		draggableNode.setOnMousePressed(e -> {
+			VBox box = new VBox();
+			boolean take = false;
+			Iterator<ParameterizedGenericObject<?, R>> operationIterator = operations.iterator();
+			List<ParameterizedGenericObject<?, ?>> elementsInBox = new ArrayList<>();
+			while (operationIterator.hasNext()) {
+				ParameterizedGenericObject<?, R> operation = operationIterator.next();
+				if (!take && item == operation) {
+					take = true;
+				}
+				if (take) {
+					Node uiElement = editor.getUIElement(operation);
+					elementsInBox.add(operation);
+					uiElement.setOnMousePressed(null);
+					box.getChildren().add(uiElement);
+					operationIterator.remove();
+				}
+			}
+			Coord delta = new Coord();
+			addElementToPaneAndFillDeltaWithPosition(delta, box, editor.getEditorPane(), e);
+			setDragUpdate(box, delta);
+			editor.allowDragDrop(box, elementsInBox);
+		});
+	}
+	
 	@FXML
 	void onClick(MouseEvent event) {
 		if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
