@@ -6,7 +6,7 @@ import io.github.danthe1st.yagpl.api.StandardElement;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
 @StandardElement
-public class Multiply<C> extends Expression<Number, C> {
+public class Multiply extends Expression<Number> {
 	public Multiply() {
 		this("*",new Class<?>[] { Number.class,Number.class });
 	}
@@ -15,7 +15,7 @@ public class Multiply<C> extends Expression<Number, C> {
 	}
 
 	@Override
-	public Number execute(FunctionContext<C> ctx, Object... params) throws YAGPLException {
+	public Number execute(FunctionContext ctx, Object... params) throws YAGPLException {
 		Number ret;
 		Number a = (Number) params[0];
 		Number b = (Number) params[1];

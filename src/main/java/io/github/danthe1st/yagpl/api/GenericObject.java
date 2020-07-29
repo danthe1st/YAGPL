@@ -9,11 +9,11 @@ import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
  * @author Daniel
  *
  * @param <R> return value
- * @param <CR> return value of current function
+ * @param <C> return value of current function
  */
-public interface GenericObject<R,C> extends Serializable{
+public interface GenericObject<R> extends Serializable{
 	String getName();
 	Class<?>[] getExpectedParameters();//if null-->any params valid
-	R execute(FunctionContext<C> ctx,Object... params) throws YAGPLException;
-	<T>GenericObject<R,T> createCopy() throws YAGPLException;
+	R execute(FunctionContext ctx,Object... params) throws YAGPLException;
+	GenericObject<R> createCopy() throws YAGPLException;
 }

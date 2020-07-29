@@ -1,11 +1,9 @@
 package io.github.danthe1st.yagpl.api;
 
-import java.util.function.Consumer;
-
 import io.github.danthe1st.yagpl.api.lambdas.SerializableConsumer;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
-public abstract class Statement<C> extends GenericObjectAdapter<Void,C>{
+public abstract class Statement extends GenericObjectAdapter<Void>{
 	private SerializableConsumer<Object[]> action;
 
 	public Statement(String name, SerializableConsumer<Object[]> action) {
@@ -18,9 +16,8 @@ public abstract class Statement<C> extends GenericObjectAdapter<Void,C>{
 	}
 
 	@Override
-	public Void execute(FunctionContext<C> ctx, Object... params) throws YAGPLException {
+	public Void execute(FunctionContext ctx, Object... params) throws YAGPLException {
 		action.accept(params);
 		return null;
 	}
-	
 }

@@ -5,17 +5,17 @@ import java.util.Arrays;
 
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
-public class ParameterizedGenericObject<T,C> implements Serializable {//TODO expression, object, ... -->proper name
-	private GenericObject<T,C> obj;
+public class ParameterizedGenericObject<T> implements Serializable {//TODO expression, object, ... -->proper name
+	private GenericObject<T> obj;
 	private String[] params;
 
-	public ParameterizedGenericObject(GenericObject<T,C> obj, String[] params) {
+	public ParameterizedGenericObject(GenericObject<T> obj, String[] params) {
 		super();
 		this.obj = obj;
 		this.params = params;
 	}
 
-	public GenericObject<T,C> getObj() {
+	public GenericObject<T> getObj() {
 		return obj;
 	}
 	public String[] getParams() {
@@ -45,7 +45,7 @@ public class ParameterizedGenericObject<T,C> implements Serializable {//TODO exp
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		ParameterizedGenericObject<?,?> other = (ParameterizedGenericObject<?,?>) obj;
+		ParameterizedGenericObject<?> other = (ParameterizedGenericObject<?>) obj;
 		if (this.obj == null) {
 			if (other.obj != null) {
 				return false;
@@ -56,7 +56,7 @@ public class ParameterizedGenericObject<T,C> implements Serializable {//TODO exp
 		return true;
 	}
 
-	public <N> ParameterizedGenericObject<T, N> createCopy() throws YAGPLException {
+	public ParameterizedGenericObject<T> createCopy() throws YAGPLException {
 		return new ParameterizedGenericObject<>(obj.createCopy(), Arrays.copyOf(params,params.length));
 	}
 

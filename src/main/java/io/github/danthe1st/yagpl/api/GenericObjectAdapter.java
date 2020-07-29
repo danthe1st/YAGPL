@@ -1,15 +1,11 @@
 package io.github.danthe1st.yagpl.api;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Objects;
 
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Identifier;
 
-public abstract class GenericObjectAdapter<R, C> implements GenericObject<R, C>,Cloneable {
+public abstract class GenericObjectAdapter<R> implements GenericObject<R>,Cloneable {
 	private String name;
 	private Class<?>[] expectedParams = null;
 	private Identifier id;
@@ -44,10 +40,10 @@ public abstract class GenericObjectAdapter<R, C> implements GenericObject<R, C>,
 		return Objects.hash(this.getClass(),id);
 	}
 	@Override
-	public <T> GenericObject<R, T> createCopy() throws YAGPLException {
+	public GenericObject<R> createCopy() throws YAGPLException {
 		try {
 			@SuppressWarnings("unchecked")
-			GenericObjectAdapter<R, T> copy=(GenericObjectAdapter<R, T>)clone();
+			GenericObjectAdapter<R> copy=(GenericObjectAdapter<R>)clone();
 			copy.id = new Identifier();
 			return copy;
 		} catch (CloneNotSupportedException e) {
@@ -56,6 +52,6 @@ public abstract class GenericObjectAdapter<R, C> implements GenericObject<R, C>,
 	}
 	@Override
 	public boolean equals(Object obj) {
-		return obj!=null&&obj.getClass()==this.getClass() && this.id == ((GenericObjectAdapter<?, ?>) obj).id;
+		return obj!=null&&obj.getClass()==this.getClass() && this.id == ((GenericObjectAdapter<?>) obj).id;
 	}
 }

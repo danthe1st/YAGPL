@@ -22,17 +22,18 @@ import java.util.function.Consumer;
 import org.apache.commons.collections4.map.AbstractReferenceMap.ReferenceStrength;
 import org.apache.commons.collections4.map.ReferenceMap;
 
-import io.github.danthe1st.yagpl.api.Function;
+import io.github.danthe1st.yagpl.api.Expression;
 import io.github.danthe1st.yagpl.api.GenericObject;
+import io.github.danthe1st.yagpl.api.OperationBlock;
 import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
+import io.github.danthe1st.yagpl.api.blocks.Function;
+import io.github.danthe1st.yagpl.api.constant.ConstantExpression;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
@@ -44,26 +45,26 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Region;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
-public class EditorController extends ControllerAdapter<AnchorPane> implements Initializable {
+public class EditorController extends ControllerAdapter<BorderPane> implements Initializable {
 
-	private Map<GenericObject<?, ?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK,
+	private Map<GenericObject<?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK,
 			ReferenceStrength.WEAK);
 
-	private Map<String, FunctionViewController<?>> functions = new ReferenceMap<>(ReferenceStrength.WEAK,
+	private Map<String, OperationBlockViewController> operationBlocks = new ReferenceMap<>(ReferenceStrength.WEAK,
 			ReferenceStrength.WEAK);
 
 	@FXML
-	private ListView<ParameterizedGenericObject<?, ?>> availableElementView;
+	private ListView<ParameterizedGenericObject<?>> availableElementView;
 
-	private ObservableList<ParameterizedGenericObject<?, ?>> availableElements = FXCollections.observableArrayList();
+	private ObservableList<ParameterizedGenericObject<?>> availableElements = FXCollections.observableArrayList();
 
 	@FXML
 	private AnchorPane editorPane;
@@ -72,13 +73,15 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 	void save(ActionEvent event) {
 		try (ObjectOutputStream oos = new ObjectOutputStream(
 				new BufferedOutputStream(new FileOutputStream("program.dat")))) {
-			Map<String, FunctionViewController<?>> copy = new HashMap<>(functions);
+			Map<String, OperationBlockViewController> copy = new HashMap<>(operationBlocks);
 			oos.writeInt(copy.size());
-			for (FunctionViewController<?> functionViewCtl : copy.values()) {
-				functionViewCtl.save(oos);
+			for (OperationBlockViewController operationBlockViewCtl : copy.values()) {
+				oos.writeObject(operationBlockViewCtl.getOperationBlock());
+				oos.writeDouble(view.getLayoutX());
+				oos.writeDouble(view.getLayoutY());
 			}
 		} catch (IOException e) {
-			error("Cannot write function", e);
+			error("Cannot write operation block", e);
 		}
 	}
 
@@ -86,9 +89,10 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		File file = new File("program.dat");
 		if (file.exists()) {
 			try (ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+				
 				int size = ois.readInt();
 				for (int i = 0; i < size; i++) {
-					addFunction((Function<?, ?>) ois.readObject());
+					addOperationBlock((OperationBlock<?>) ois.readObject(),ois.readDouble(),ois.readDouble());
 				}
 			} catch (IOException | ClassNotFoundException e) {
 				error("loading failed", e);
@@ -96,31 +100,41 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		}
 	}
 
-	private <R> FunctionViewController<R> loadFunctionElement(Function<R, ?> func) throws IOException {
-		FunctionViewController<R> functionView = main.loadView("FunctionView");
+	private OperationBlockViewController loadOperationBlock(OperationBlock<?> func) throws IOException {
+		OperationBlockViewController functionView = main.loadView("OperationBlockView");
 		functionView.setEditor(this);
-		functionView.setFunction(func);
+		functionView.setOperationBlock(func);
 		nodeIndex.put(func, functionView.getView());
 		allowDrag(functionView.getView());
-		functions.put(func.getName(), functionView);
+		if(!(func instanceof Function<?>)) {
+			functionView.getView().setOnMouseReleased(evt ->{
+				drop(functionView.getView(), evt, Arrays.asList(new ParameterizedGenericObject<>(func,func.getExpectedParameters()==null?new String[0]:new String[func.getExpectedParameters().length])));
+				functionView.getView().setOnMouseReleased(null);
+			});
+			//allowDrop(functionView.getView(), Arrays.asList(new ParameterizedGenericObject<>(func,func.getExpectedParameters()==null?new String[0]:new String[func.getExpectedParameters().length])));
+		}
+		operationBlocks.put(func.getName(), functionView);
 		
 		return functionView;
 	}
 
-	public <R> FunctionViewController<R> addFunction(Function<R, ?> func) throws IOException {
-		FunctionViewController<R> functionView = loadFunctionElement(func);
-		editorPane.getChildren().add(functionView.getView());
-		return functionView;
+	public OperationBlockViewController addOperationBlock(OperationBlock<?> func,double x,double y) throws IOException {
+		OperationBlockViewController operationBlockViewView = loadOperationBlock(func);
+		Node view=operationBlockViewView.getView();
+		view.setLayoutX(x);
+		view.setLayoutY(y);
+		editorPane.getChildren().add(view);
+		return operationBlockViewView;
 	}
 
-	public Node getUIElement(ParameterizedGenericObject<?, ?> uiExpr) {
+	public Node getUIElement(ParameterizedGenericObject<?> uiExpr) {
 		Node element = nodeIndex.get(uiExpr.getObj());
 		if (element == null) {
-			if (uiExpr.getObj() instanceof Function) {
+			if (uiExpr.getObj() instanceof OperationBlock) {
 				try {
-					element = loadFunctionElement((Function<?, ?>) uiExpr.getObj()).getView();
+					element = loadOperationBlock((OperationBlock<?>) uiExpr.getObj()).getView();
 				} catch (IOException e) {
-					fatal("cannot load function", e);
+					fatal("cannot load operation block", e);
 				}
 			} else {
 				HBox box = new HBox();
@@ -187,13 +201,17 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		prompt.setHeaderText("Please resolve variable " + varName + " (" + type.getSimpleName() + ")");
 		Optional<String> varValue = prompt.showAndWait();
 		ret = varValue.isPresent() ? Resolver.resolveVariable(globalCtx, varValue.get()) : null;
+		if(type.isAssignableFrom(Expression.class)) {
+			System.out.println("TEST");
+			ret=new ConstantExpression<>(ret);
+		}
 		if (ret != null && !type.isInstance(ret)) {
 			throw new NotResolveableException();
 		}
 		return ret;
 	}
 
-	private Node createParameterLabel(Class<?> paramClass, String param, Consumer<String> setter) {
+	public Node createParameterLabel(Class<?> paramClass, String param, Consumer<String> setter) {
 		StringBuilder text;
 		if (param == null) {
 			text = new StringBuilder("<" + paramClass.getSimpleName() + ">");
@@ -204,7 +222,7 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		label.setOnMouseClicked(evt -> {
 			if (evt.getClickCount() == 2) {
 				String varName = loadVariableName(paramClass, text.toString());
-				if (varName != null) {
+				if (varName != null&&setter!=null) {
 					setter.accept(varName);
 					label.setText(varName);
 					text.setLength(varName.length());
@@ -215,17 +233,17 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		return label;
 	}
 
-	public void setAvailableElements(List<ParameterizedGenericObject<?, ?>> available) {
+	public void setAvailableElements(List<ParameterizedGenericObject<?>> available) {
 		availableElements.clear();
 		availableElements.addAll(available);
 	}
 
-	private void allowCopyDrag(ParameterizedGenericObject<?, ?> uiExpr) {
+	private void allowCopyDrag(ParameterizedGenericObject<?> uiExpr) {
 		Node outerNode = getUIElement(uiExpr);
 		outerNode.setOnMousePressed(e -> {
 			final Coord dragDelta = new Coord();
 			try {
-				ParameterizedGenericObject<?, ?> copy = uiExpr.createCopy();
+				ParameterizedGenericObject<?> copy = uiExpr.createCopy();
 				Node node = getUIElement(copy);
 
 				addElementToPaneAndFillDeltaWithPosition(dragDelta, node, editorPane, e);
@@ -243,30 +261,23 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 		});
 	}
 
-	public void allowDragDrop(Node node, List<ParameterizedGenericObject<?, ?>> toDrop) {
+	public void allowDragDrop(Node node, List<ParameterizedGenericObject<?>> toDrop) {
 		allowDrag(node);
 		allowDrop(node, toDrop);
 	}
 
-	private void allowDrop(Node node, List<ParameterizedGenericObject<?, ?>> toDrop) {
-		EventHandler<? super MouseEvent> oldHandler = node.getOnMouseReleased();
-		node.setOnMouseReleased(evt -> {
-			if (oldHandler != null) {
-				oldHandler.handle(evt);
-			}
-
-			drop(node, evt, toDrop);
-		});
+	private void allowDrop(Node node, List<ParameterizedGenericObject<?>> toDrop) {
+		node.setOnMouseReleased(evt ->drop(node, evt, toDrop));
 	}
 
-	public void drop(Node node, MouseEvent evt, List<ParameterizedGenericObject<?, ?>> toDrop) {
-		Iterator<FunctionViewController<?>> funcIter = functions.values().iterator();
+	public void drop(Node node, MouseEvent evt, List<ParameterizedGenericObject<?>> toDrop) {
+		Iterator<OperationBlockViewController> funcIter = operationBlocks.values().iterator();
 		boolean goOn = true;
-		if (toDrop.isEmpty() || toDrop.get(0).getObj() instanceof Function<?, ?>) {
+		if (toDrop.isEmpty() || toDrop.get(0).getObj() instanceof Function<?>) {
 			return;
 		}
 		while (goOn && funcIter.hasNext()) {
-			FunctionViewController<?> funcView = funcIter.next();
+			OperationBlockViewController funcView = funcIter.next();
 			try {
 				goOn = !addCopiesToFuncViewIfIntersects(evt, funcView, toDrop);
 			} catch (YAGPLException e1) {
@@ -277,17 +288,15 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 			if (node.getParent() instanceof Pane) {
 				((Pane) node.getParent()).getChildren().remove(node);
 			} else if (!editorPane.getChildren().remove(node)) {
-				System.out.println("Cannot remove: " + node + " from " + node.getParent() + " ("
-						+ node.getParent().getClass().getSuperclass() + ")");
+				System.out.println("Cannot remove: " + node + " from " + node.getParent());
 			}
-
 		}
 	}
 
-	private static <T> boolean addCopiesToFuncViewIfIntersects(MouseEvent evt, FunctionViewController<T> ctl,
-			List<ParameterizedGenericObject<?, ?>> toAdd) throws YAGPLException {
-		List<ParameterizedGenericObject<?, T>> toAddChanged = new ArrayList<>();
-		for (ParameterizedGenericObject<?, ?> add : toAdd) {
+	private static boolean addCopiesToFuncViewIfIntersects(MouseEvent evt, OperationBlockViewController ctl,
+			List<ParameterizedGenericObject<?>> toAdd) throws YAGPLException {
+		List<ParameterizedGenericObject<?>> toAddChanged = new ArrayList<>();
+		for (ParameterizedGenericObject<?> add : toAdd) {
 			toAddChanged.add(add.createCopy());
 		}
 		return ctl.addIfIntersects(evt, toAddChanged);
@@ -296,26 +305,26 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 		availableElementView.setItems(availableElements);
-		availableElementView.setCellFactory(param -> new ListCell<ParameterizedGenericObject<?, ?>>() {
+		availableElementView.setCellFactory(param -> new ListCell<ParameterizedGenericObject<?>>() {
 			@Override
-			protected void updateItem(ParameterizedGenericObject<?, ?> item, boolean empty) {
+			protected void updateItem(ParameterizedGenericObject<?> item, boolean empty) {
 				if (!empty && item != null) {
 					Node elem;
-					if (item.getObj() instanceof Function) {
-						if (nodeIndex.containsKey(item.getObj())) {
-							elem = getUIElement(item);
-						} else {
-							elem = new Label("Function");
-							nodeIndex.put(item.getObj(), elem);
-						}
-					} else {
+//					if (item.getObj() instanceof Function) {
+//						if (nodeIndex.containsKey(item.getObj())) {
+//							elem = getUIElement(item);
+//						} else {
+//							elem = new Label("Function");
+//							nodeIndex.put(item.getObj(), elem);
+//						}
+//					} else {
 						elem = getUIElement(item);
 						if (elem instanceof Parent) {
 							for (Node node : ((Parent) elem).getChildrenUnmodifiable()) {
 								node.setOnMouseClicked(null);
 							}
 						}
-					}
+//					}
 					this.setGraphic(elem);
 					allowCopyDrag(item);
 				}
@@ -326,5 +335,4 @@ public class EditorController extends ControllerAdapter<AnchorPane> implements I
 	public Pane getEditorPane() {
 		return editorPane;
 	}
-
 }

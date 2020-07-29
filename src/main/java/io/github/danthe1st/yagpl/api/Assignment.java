@@ -3,14 +3,14 @@ package io.github.danthe1st.yagpl.api;
 import io.github.danthe1st.yagpl.api.throwables.IllegalArgumentCountException;
 import io.github.danthe1st.yagpl.api.throwables.IllegalArgumentTypeException;
 @StandardElement
-public class Assignment<C> extends GenericObjectAdapter<Void, C>{
+public class Assignment extends GenericObjectAdapter<Void>{
 
 	public Assignment() {
 		super("assign",new Class<?>[] {String.class,Object.class});
 	}
 
 	@Override
-	public Void execute(FunctionContext<C> ctx, Object... params) throws IllegalArgumentCountException, IllegalArgumentTypeException {
+	public Void execute(FunctionContext ctx, Object... params) throws IllegalArgumentCountException, IllegalArgumentTypeException {
 		if(params.length!=2) {
 			throw new IllegalArgumentCountException(params.length,1);
 		}

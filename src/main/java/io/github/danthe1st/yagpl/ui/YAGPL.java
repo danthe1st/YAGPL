@@ -7,17 +7,10 @@ import java.util.List;
 
 import org.reflections.Reflections;
 
-import io.github.danthe1st.yagpl.api.Assignment;
-import io.github.danthe1st.yagpl.api.Function;
 import io.github.danthe1st.yagpl.api.GenericObject;
 import io.github.danthe1st.yagpl.api.GlobalContext;
 import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
-import io.github.danthe1st.yagpl.api.ReturnStatement;
 import io.github.danthe1st.yagpl.api.StandardElement;
-import io.github.danthe1st.yagpl.api.concrete.debug.LambdaExpression;
-import io.github.danthe1st.yagpl.api.concrete.debug.LambdaStatement;
-import io.github.danthe1st.yagpl.api.concrete.debug.PrintArgsStatement;
-import io.github.danthe1st.yagpl.api.concrete.debug.PrintFunctionContext;
 import io.github.danthe1st.yagpl.ui.controller.Controller;
 import io.github.danthe1st.yagpl.ui.controller.EditorController;
 import javafx.application.Application;
@@ -43,17 +36,17 @@ public class YAGPL extends Application{
 		primaryStage.setScene(new Scene(ctl.getView()));
 		primaryStage.show();
 	}
-	private static List<ParameterizedGenericObject<?,?>> load() throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		List<ParameterizedGenericObject<?,?>> operations=new ArrayList<>();
+	private static List<ParameterizedGenericObject<?>> load() throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
+		List<ParameterizedGenericObject<?>> operations=new ArrayList<>();
 		Reflections reflections=new Reflections("io.github.danthe1st.yagpl.api");
 		for(Class<?> cl:reflections.getTypesAnnotatedWith(StandardElement.class)) {
 			Object instance=cl.getDeclaredConstructor().newInstance();
-			if(instance instanceof GenericObject<?,?>) {
+			if(instance instanceof GenericObject<?>) {
 				String[] params=new String[0];
-				if(((GenericObject<?,?>) instance).getExpectedParameters()!=null) {
-					params=new String[((GenericObject<?,?>) instance).getExpectedParameters().length];
+				if(((GenericObject<?>) instance).getExpectedParameters()!=null) {
+					params=new String[((GenericObject<?>) instance).getExpectedParameters().length];
 				}
-				operations.add(new ParameterizedGenericObject<>((GenericObject<?,?>)instance, params));
+				operations.add(new ParameterizedGenericObject<>((GenericObject<?>)instance, params));
 			}
 		}
 		return operations;

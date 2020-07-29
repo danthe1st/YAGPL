@@ -6,7 +6,7 @@ import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
 
 @StandardElement
-public class IncrementBy<C> extends Add<C>{
+public class IncrementBy extends Add{
 	//TODO create new class variable in order to pass just the variable, not just the string
 	public IncrementBy() {
 		this("+=",new Class<?>[] {String.class,Number.class});
@@ -16,7 +16,7 @@ public class IncrementBy<C> extends Add<C>{
 	}
 	
 	@Override
-	public Number execute(FunctionContext<C> ctx, Object... params) throws YAGPLException {
+	public Number execute(FunctionContext ctx, Object... params) throws YAGPLException {
 		Number ret=super.execute(ctx, Resolver.resolveVariable(ctx, (String) params[0]),params[1]);
 		ctx.setVariable((String) params[0], ret);
 		return ret;

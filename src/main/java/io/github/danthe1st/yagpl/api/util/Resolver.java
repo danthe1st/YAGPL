@@ -32,6 +32,8 @@ public class Resolver {
 			});
 		}
 		keywordResolvers.put("null", null);
+		keywordResolvers.put("true", true);
+		keywordResolvers.put("false", false);
 	}
 	public static Object resolveVariable(Context ctx,String toResolve) throws NotResolveableException {
 		if(toResolve==null) {

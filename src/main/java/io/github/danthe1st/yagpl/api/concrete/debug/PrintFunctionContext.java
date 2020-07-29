@@ -5,14 +5,14 @@ import io.github.danthe1st.yagpl.api.StandardElement;
 import io.github.danthe1st.yagpl.api.Statement;
 
 @StandardElement
-public class PrintFunctionContext<C> extends Statement<C>{
+public class PrintFunctionContext extends Statement{
 
 	public PrintFunctionContext() {
 		super("debug-printCTX", null,new Class<?>[] {});
 	}
 
 	@Override
-	public Void execute(FunctionContext<C> ctx, Object... params) {
+	public Void execute(FunctionContext ctx, Object... params) {
 		System.out.println(ctx);
 		return null;
 	}

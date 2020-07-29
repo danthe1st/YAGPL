@@ -1,11 +1,9 @@
 package io.github.danthe1st.yagpl.api;
 
-import java.util.function.Function;
-
 import io.github.danthe1st.yagpl.api.lambdas.SerializableFunction;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
-public abstract class Expression<R,C> extends GenericObjectAdapter<R,C>{
+public abstract class Expression<R> extends GenericObjectAdapter<R>{
 	private SerializableFunction<Object[], R> action;
 	protected Expression(String name,SerializableFunction<Object[], R> action) {
 		super(name);
@@ -17,7 +15,7 @@ public abstract class Expression<R,C> extends GenericObjectAdapter<R,C>{
 	}
 
 	@Override
-	public R execute(FunctionContext<C> ctx, Object... params) throws YAGPLException {
+	public R execute(FunctionContext ctx, Object... params) throws YAGPLException {
 		return action.apply(params);
 	}
 

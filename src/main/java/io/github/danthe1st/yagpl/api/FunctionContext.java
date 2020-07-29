@@ -3,21 +3,21 @@ package io.github.danthe1st.yagpl.api;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FunctionContext<R> implements Context{
+public class FunctionContext implements Context{
 	private Map<String, Object> variables=new HashMap<>();
 	private GlobalContext globalCtx;
-	private R ret=null;
+	private Object ret=null;
 	private boolean goOn=true;
 	public FunctionContext(GlobalContext globalCtx) {
 		this.globalCtx=globalCtx;
 	}
-	public FunctionContext(FunctionContext<?> ctx) {
+	public FunctionContext(FunctionContext ctx) {
 		this.globalCtx=ctx.globalCtx;
 	}
-	public R getReturn() {
+	public Object getReturn() {
 		return ret;
 	}
-	public void doReturn(R ret) {
+	public void doReturn(Object ret) {
 		this.ret=ret;
 		goOn=false;
 	}

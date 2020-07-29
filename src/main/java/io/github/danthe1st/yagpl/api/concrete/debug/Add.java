@@ -6,7 +6,7 @@ import io.github.danthe1st.yagpl.api.StandardElement;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
 @StandardElement
-public class Add<C> extends Expression<Number, C> {
+public class Add extends Expression<Number> {
 	// TODO create new class variable in order to pass just the variable, not just
 	// the string
 	public Add() {
@@ -17,7 +17,7 @@ public class Add<C> extends Expression<Number, C> {
 	}
 
 	@Override
-	public Number execute(FunctionContext<C> ctx, Object... params) throws YAGPLException {
+	public Number execute(FunctionContext ctx, Object... params) throws YAGPLException {
 		Number ret;
 		Number a = (Number) params[0];
 		Number b = (Number) params[1];

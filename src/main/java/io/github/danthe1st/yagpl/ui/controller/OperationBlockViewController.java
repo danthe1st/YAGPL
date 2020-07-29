@@ -1,8 +1,5 @@
 package io.github.danthe1st.yagpl.ui.controller;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -10,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import io.github.danthe1st.yagpl.api.Function;
 import io.github.danthe1st.yagpl.api.FunctionContext;
+import io.github.danthe1st.yagpl.api.OperationBlock;
 import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
@@ -34,28 +31,31 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-public class FunctionViewController<R> extends ControllerAdapter<BorderPane>{
+public class OperationBlockViewController extends ControllerAdapter<BorderPane>{
 
+	@FXML
+    private HBox titleBox;
+	
 	@FXML
 	private Label title;
 
 	@FXML
 	private AnchorPane operationBox;
-	private List<ParameterizedGenericObject<?, R>> operations=new ArrayList<>();
+	private List<ParameterizedGenericObject<?>> operations=new ArrayList<>();
 	
-	private Function<R, ?> function;
+	private OperationBlock<?> block;
 	private EditorController editor;
 	
-	public boolean addIfIntersects(MouseEvent event, List<ParameterizedGenericObject<?, R>> operationsToAdd) {
+	public boolean addIfIntersects(MouseEvent event, List<ParameterizedGenericObject<?>> operationsToAdd) {
 		Coord coord = getAbsoluteCoord(operationBox);
 		Bounds bounds = new BoundingBox(coord.getX(), coord.getY(), operationBox.getWidth(), operationBox.getHeight());
 		if (bounds.intersects(event.getSceneX(), event.getSceneY(), 0, 0)) {
 			Map.Entry<Integer, Double> posAndIndex=findIndexAndPositionToInsert(event.getSceneY() - coord.getY());
 			int index = posAndIndex.getKey();
 			operations.addAll(index, operationsToAdd);
-			function.getOperations().addAll(index, operationsToAdd);
+			block.getOperations().addAll(index, operationsToAdd);
 			for (int i = 0; i < operationsToAdd.size(); i++) {
-				ParameterizedGenericObject<?, R> op=operationsToAdd.get(i);
+				ParameterizedGenericObject<?> op=operationsToAdd.get(i);
 				operationBox.getChildren().add(index+i, editor.getUIElement(op));
 				updateElementListeners(op);
 			}
@@ -66,9 +66,6 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane>{
 		}
 	}
 	private void adjustPositionsFrom(int startIndex,double valueAtStartIndex) {
-		System.out.println(operations);
-//		startIndex=0;
-//		valueAtStartIndex=0;
 		operationBox.applyCss();
 		operationBox.layout();
 		ObservableList<Node> children = operationBox.getChildren();
@@ -76,15 +73,16 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane>{
 			Node elem=children.get(i);
 			AnchorPane.setTopAnchor(elem, valueAtStartIndex);
 			valueAtStartIndex+=estimateHeight(elem, 0);
-			System.out.println(valueAtStartIndex);
 		}
+		
+		operationBox.setPrefHeight(valueAtStartIndex+20);
 	}
 	
 	private Map.Entry<Integer, Double> findIndexAndPositionToInsert(double posY) {
 		double currentPos=0;
 		int i=0;
-		for (ParameterizedGenericObject<?, R> parameterizedGenericObject : operations) {
-			if((currentPos+=estimateHeight(editor.getUIElement(parameterizedGenericObject), operationBox.getWidth()))>=posY) {
+		for (ParameterizedGenericObject<?> operation : operations) {
+			if((currentPos+=estimateHeight(editor.getUIElement(operation), operationBox.getWidth()))>=posY) {
 				break;
 			}
 			i++;
@@ -96,35 +94,45 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane>{
 		this.editor = editor;
 	}
 
-	public void setFunction(Function<R, ?> function) {
-		this.function = function;
+	public void setOperationBlock(OperationBlock<?> function) {
+		this.block = function;
+		titleBox.getChildren().clear();
+		titleBox.getChildren().add(title);
 		title.setText(function.getName());
 		operations.clear();
 		operations.addAll(function.getOperations());
 		operationBox.getChildren().clear();
-		for (ParameterizedGenericObject<?, R> op : function.getOperations()) {
-			operationBox.getChildren().add(editor.getUIElement(op));
+		if(block.getExpectedParameters()==null) {
+			//TODO
+		}else {
+			for (Class<?> param : block.getExpectedParameters()) {
+				Node paramLabel=editor.createParameterLabel(param, param==null?"<?>":"<"+param.getSimpleName()+">", null);
+				titleBox.getChildren().add(paramLabel);
+			}
 		}
-		Platform.runLater(()->{
-			adjustPositionsFrom(0, 0);
-		});
+		
+		for (ParameterizedGenericObject<?> op : function.getOperations()) {
+			operationBox.getChildren().add(editor.getUIElement(op));
+			updateElementListeners(op);
+		}
+		Platform.runLater(()->adjustPositionsFrom(0, 0));
 	}
-	private void updateElementListeners(ParameterizedGenericObject<?, R> item) {//TODO use wherever element is added
+	private void updateElementListeners(ParameterizedGenericObject<?> item) {//TODO use wherever element is added
 		Node wholeNode = editor.getUIElement(item);
-		Node draggableNode=wholeNode;
 		if(wholeNode instanceof HBox) {
 			ObservableList<Node> children = ((Parent) wholeNode).getChildrenUnmodifiable();
 			if (!children.isEmpty()) {
-				draggableNode = children.get(0);
+				wholeNode = children.get(0);
 			}
 		}
+		Node draggableNode=wholeNode;
 		draggableNode.setOnMousePressed(e -> {
 			VBox box = new VBox();
 			boolean take = false;
-			Iterator<ParameterizedGenericObject<?, R>> operationIterator = operations.iterator();
-			List<ParameterizedGenericObject<?, ?>> elementsInBox = new ArrayList<>();
+			Iterator<ParameterizedGenericObject<?>> operationIterator = operations.iterator();
+			List<ParameterizedGenericObject<?>> elementsInBox = new ArrayList<>();
 			while (operationIterator.hasNext()) {
-				ParameterizedGenericObject<?, R> operation = operationIterator.next();
+				ParameterizedGenericObject<?> operation = operationIterator.next();
 				if (!take && item == operation) {
 					take = true;
 				}
@@ -134,19 +142,24 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane>{
 					uiElement.setOnMousePressed(null);
 					box.getChildren().add(uiElement);
 					operationIterator.remove();
+					adjustPositionsFrom(0, 0);//adjust height of box
 				}
 			}
 			Coord delta = new Coord();
 			addElementToPaneAndFillDeltaWithPosition(delta, box, editor.getEditorPane(), e);
+			
+			draggableNode.setOnMouseReleased(evt->{
+				editor.allowDragDrop(box, elementsInBox);
+			});
 			setDragUpdate(box, delta);
-			editor.allowDragDrop(box, elementsInBox);
 		});
+		
 	}
 	
 	@FXML
 	void onClick(MouseEvent event) {
 		if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
-			Class<?>[] expectedParameters = function.getExpectedParameters();
+			Class<?>[] expectedParameters = block.getExpectedParameters();
 			Object[] params;
 			if (expectedParameters == null) {
 				params = new Object[0];
@@ -183,18 +196,13 @@ public class FunctionViewController<R> extends ControllerAdapter<BorderPane>{
 				}
 			}
 			try {
-				function.execute(new FunctionContext<>(globalCtx), params);
+				block.execute(new FunctionContext(globalCtx), params);
 			} catch (YAGPLException e) {
-				error("An error occured while executing the function", e);
+				error("An error occured while executing the block", e);
 			}
 		}
 	}
-
-	public void save(ObjectOutputStream oos) throws IOException {
-		oos.writeObject(function);
-	}
-	@SuppressWarnings("unchecked")
-	public void load(ObjectInputStream ois) throws ClassNotFoundException, IOException {
-		setFunction((Function<R, ?>) ois.readObject());
+	public OperationBlock<?> getOperationBlock() {
+		return block;
 	}
 }
