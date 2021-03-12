@@ -28,7 +28,6 @@ public class Resolver {
 				}catch(NumberFormatException e) {
 					throw new NotResolveableException(e);
 				}
-				
 			});
 		}
 		keywordResolvers.put("null", null);
@@ -36,7 +35,7 @@ public class Resolver {
 		keywordResolvers.put("false", false);
 	}
 	public static Object resolveVariable(Context ctx,String toResolve) throws NotResolveableException {
-		if(toResolve==null) {
+		if(toResolve==null||toResolve.isEmpty()) {
 			throw new NotResolveableException(toResolve);
 		}
 		Object ret=null;

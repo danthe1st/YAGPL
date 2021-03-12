@@ -38,7 +38,7 @@ public class YAGPL extends Application{
 	}
 	private static List<ParameterizedGenericObject<?>> load() throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		List<ParameterizedGenericObject<?>> operations=new ArrayList<>();
-		Reflections reflections=new Reflections("io.github.danthe1st.yagpl.api");
+		Reflections reflections=new Reflections("io.github.danthe1st.yagpl");
 		for(Class<?> cl:reflections.getTypesAnnotatedWith(StandardElement.class)) {
 			Object instance=cl.getDeclaredConstructor().newInstance();
 			if(instance instanceof GenericObject<?>) {

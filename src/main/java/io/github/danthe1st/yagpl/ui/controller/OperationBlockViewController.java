@@ -2,16 +2,20 @@ package io.github.danthe1st.yagpl.ui.controller;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.github.danthe1st.yagpl.api.Expression;
 import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.OperationBlock;
 import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
+import io.github.danthe1st.yagpl.api.constant.ConstantExpression;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
+import io.github.danthe1st.yagpl.api.util.Resolver;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -31,70 +35,75 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-public class OperationBlockViewController extends ControllerAdapter<BorderPane>{
+public class OperationBlockViewController extends ControllerAdapter<BorderPane> {
 
 	@FXML
-    private HBox titleBox;
-	
+	private HBox titleBox;
+
 	@FXML
 	private Label title;
 
 	@FXML
 	private AnchorPane operationBox;
-	private List<ParameterizedGenericObject<?>> operations=new ArrayList<>();
-	
+	private List<ParameterizedGenericObject<?>> operations = new ArrayList<>();
+
 	private OperationBlock<?> block;
 	private EditorController editor;
 	
+	private String[] paramNames;
+
 	public boolean addIfIntersects(MouseEvent event, List<ParameterizedGenericObject<?>> operationsToAdd) {
 		Coord coord = getAbsoluteCoord(operationBox);
 		Bounds bounds = new BoundingBox(coord.getX(), coord.getY(), operationBox.getWidth(), operationBox.getHeight());
 		if (bounds.intersects(event.getSceneX(), event.getSceneY(), 0, 0)) {
-			Map.Entry<Integer, Double> posAndIndex=findIndexAndPositionToInsert(event.getSceneY() - coord.getY());
+			Map.Entry<Integer, Double> posAndIndex = findIndexAndPositionToInsert(event.getSceneY() - coord.getY());
 			int index = posAndIndex.getKey();
 			operations.addAll(index, operationsToAdd);
 			block.getOperations().addAll(index, operationsToAdd);
 			for (int i = 0; i < operationsToAdd.size(); i++) {
-				ParameterizedGenericObject<?> op=operationsToAdd.get(i);
-				operationBox.getChildren().add(index+i, editor.getUIElement(op));
+				ParameterizedGenericObject<?> op = operationsToAdd.get(i);
+				System.out.println("add because of intersect "+op.getParams());
+				operationBox.getChildren().add(Math.min(index + i, operationBox.getChildren().size()), editor.getUIElement(op));
 				updateElementListeners(op);
 			}
-			adjustPositionsFrom(index,posAndIndex.getValue());
+			adjustPositionsFrom(index, posAndIndex.getValue());
 			return true;
 		} else {
 			return false;
 		}
 	}
-	private void adjustPositionsFrom(int startIndex,double valueAtStartIndex) {
+
+	private void adjustPositionsFrom(int startIndex, double valueAtStartIndex) {
 		operationBox.applyCss();
 		operationBox.layout();
 		ObservableList<Node> children = operationBox.getChildren();
 		for (int i = startIndex; i < children.size(); i++) {
-			Node elem=children.get(i);
+			Node elem = children.get(i);
 			AnchorPane.setTopAnchor(elem, valueAtStartIndex);
-			valueAtStartIndex+=estimateHeight(elem, 0);
+			valueAtStartIndex += estimateHeight(elem, 0);
 		}
-		
-		operationBox.setPrefHeight(valueAtStartIndex+20);
+
+		operationBox.setPrefHeight(valueAtStartIndex + 20);
 	}
-	
+
 	private Map.Entry<Integer, Double> findIndexAndPositionToInsert(double posY) {
-		double currentPos=0;
-		int i=0;
+		double currentPos = 0;
+		int i = 0;
 		for (ParameterizedGenericObject<?> operation : operations) {
-			if((currentPos+=estimateHeight(editor.getUIElement(operation), operationBox.getWidth()))>=posY) {
+			if ((currentPos += estimateHeight(editor.getUIElement(operation), operationBox.getWidth())) >= posY) {
 				break;
 			}
 			i++;
 		}
 		return new AbstractMap.SimpleEntry<>(i, currentPos);
 	}
-	
+
 	public void setEditor(EditorController editor) {
 		this.editor = editor;
 	}
-
-	public void setOperationBlock(OperationBlock<?> function) {
+	
+	public void setOperationBlock(OperationBlock<?> function,String[] paramNames) {
+		System.out.println("set block with params "+paramNames);
 		this.block = function;
 		titleBox.getChildren().clear();
 		titleBox.getChildren().add(title);
@@ -102,30 +111,39 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane>{
 		operations.clear();
 		operations.addAll(function.getOperations());
 		operationBox.getChildren().clear();
-		if(block.getExpectedParameters()==null) {
-			//TODO
-		}else {
-			for (Class<?> param : block.getExpectedParameters()) {
-				Node paramLabel=editor.createParameterLabel(param, param==null?"<?>":"<"+param.getSimpleName()+">", null);
+		if (block.getExpectedParameters() == null) {
+			//TODO varargs
+		} else {
+			Class<?>[] expectedParameters = block.getExpectedParameters();
+			this.paramNames=paramNames;
+			for (int i = 0; i < expectedParameters.length; i++) {
+				final int index=i;
+				Class<?> param = expectedParameters[i];
+				Node paramLabel = editor.createParameterLabel(param,
+						paramNames[index]==null?(param == null ? "<?>" : "<" + param.getSimpleName() + ">"):paramNames[index], resolvedParam->{
+							System.out.println("set index "+index+" of param names "+paramNames+ "("+Arrays.toString(paramNames)+") to "+resolvedParam);
+							paramNames[index]=resolvedParam;
+						});
 				titleBox.getChildren().add(paramLabel);
 			}
 		}
-		
+
 		for (ParameterizedGenericObject<?> op : function.getOperations()) {
 			operationBox.getChildren().add(editor.getUIElement(op));
 			updateElementListeners(op);
 		}
-		Platform.runLater(()->adjustPositionsFrom(0, 0));
+		Platform.runLater(() -> adjustPositionsFrom(0, 0));
 	}
+
 	private void updateElementListeners(ParameterizedGenericObject<?> item) {//TODO use wherever element is added
 		Node wholeNode = editor.getUIElement(item);
-		if(wholeNode instanceof HBox) {
+		if (wholeNode instanceof HBox) {
 			ObservableList<Node> children = ((Parent) wholeNode).getChildrenUnmodifiable();
 			if (!children.isEmpty()) {
 				wholeNode = children.get(0);
 			}
 		}
-		Node draggableNode=wholeNode;
+		Node draggableNode = wholeNode;
 		draggableNode.setOnMousePressed(e -> {
 			VBox box = new VBox();
 			boolean take = false;
@@ -147,15 +165,15 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane>{
 			}
 			Coord delta = new Coord();
 			addElementToPaneAndFillDeltaWithPosition(delta, box, editor.getEditorPane(), e);
-			
-			draggableNode.setOnMouseReleased(evt->{
+
+			draggableNode.setOnMouseReleased(evt -> {
 				editor.allowDragDrop(box, elementsInBox);
 			});
 			setDragUpdate(box, delta);
 		});
-		
+
 	}
-	
+
 	@FXML
 	void onClick(MouseEvent event) {
 		if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
@@ -167,7 +185,14 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane>{
 				params = new Object[expectedParameters.length];
 				for (int i = 0; i < expectedParameters.length; i++) {
 					try {
-						params[i] = editor.resolveVariable(expectedParameters[i], String.valueOf(i));
+						if(paramNames[i]==null) {
+							params[i] = editor.resolveVariable(expectedParameters[i], String.valueOf(i));
+						}else {
+							params[i] = Resolver.resolveVariable(globalCtx, paramNames[i]);
+						}
+						if(expectedParameters[i].isAssignableFrom(Expression.class)&&!(params[i] instanceof Expression)) {
+							params[i]=new ConstantExpression<>(params[i]);
+						}
 					} catch (NotResolveableException e) {
 						Alert alert = new Alert(AlertType.ERROR, "Cannot be resolved",
 								new ButtonType("set null", ButtonData.APPLY),
@@ -195,14 +220,25 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane>{
 					}
 				}
 			}
+			
 			try {
 				block.execute(new FunctionContext(globalCtx), params);
 			} catch (YAGPLException e) {
-				error("An error occured while executing the block", e);
+				error("An error occured while executing the block\n"+e.getMessage(), e);
 			}
 		}
 	}
+
 	public OperationBlock<?> getOperationBlock() {
 		return block;
 	}
+	
+	public String[] getParamNames() {
+		return paramNames;
+	}
+	
+	public void setParamNames(String[] paramNames) {
+		this.paramNames = paramNames;
+	}
+	//TODO run programs in another thread
 }

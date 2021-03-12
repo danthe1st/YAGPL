@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.map.AbstractReferenceMap.ReferenceStrength;
 import org.apache.commons.collections4.map.ReferenceMap;
@@ -79,6 +80,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 				oos.writeObject(operationBlockViewCtl.getOperationBlock());
 				oos.writeDouble(view.getLayoutX());
 				oos.writeDouble(view.getLayoutY());
+				oos.writeObject(operationBlockViewCtl.getParamNames());
 			}
 		} catch (IOException e) {
 			error("Cannot write operation block", e);
@@ -92,7 +94,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 				
 				int size = ois.readInt();
 				for (int i = 0; i < size; i++) {
-					addOperationBlock((OperationBlock<?>) ois.readObject(),ois.readDouble(),ois.readDouble());
+					addOperationBlock((OperationBlock<?>) ois.readObject(),ois.readDouble(),ois.readDouble(),(String[])ois.readObject());
 				}
 			} catch (IOException | ClassNotFoundException e) {
 				error("loading failed", e);
@@ -100,26 +102,29 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		}
 	}
 
-	private OperationBlockViewController loadOperationBlock(OperationBlock<?> func) throws IOException {
+	private OperationBlockViewController loadOperationBlock(OperationBlock<?> func,String[] paramNames) throws IOException {
+		//TODO the params get missing somewhere here
+		System.out.println("load block:  "+paramNames);
 		OperationBlockViewController functionView = main.loadView("OperationBlockView");
 		functionView.setEditor(this);
-		functionView.setOperationBlock(func);
+		functionView.setOperationBlock(func,paramNames);
 		nodeIndex.put(func, functionView.getView());
 		allowDrag(functionView.getView());
 		if(!(func instanceof Function<?>)) {
 			functionView.getView().setOnMouseReleased(evt ->{
-				drop(functionView.getView(), evt, Arrays.asList(new ParameterizedGenericObject<>(func,func.getExpectedParameters()==null?new String[0]:new String[func.getExpectedParameters().length])));
+				drop(functionView.getView(), evt, Arrays.asList(new ParameterizedGenericObject<>(func,functionView.getParamNames())));
 				functionView.getView().setOnMouseReleased(null);
 			});
 			//allowDrop(functionView.getView(), Arrays.asList(new ParameterizedGenericObject<>(func,func.getExpectedParameters()==null?new String[0]:new String[func.getExpectedParameters().length])));
 		}
 		operationBlocks.put(func.getName(), functionView);
+		nodeIndex.put(func, functionView.getView());
 		
 		return functionView;
 	}
 
-	public OperationBlockViewController addOperationBlock(OperationBlock<?> func,double x,double y) throws IOException {
-		OperationBlockViewController operationBlockViewView = loadOperationBlock(func);
+	public OperationBlockViewController addOperationBlock(OperationBlock<?> func,double x,double y,String[] params) throws IOException {
+		OperationBlockViewController operationBlockViewView = loadOperationBlock(func,params);
 		Node view=operationBlockViewView.getView();
 		view.setLayoutX(x);
 		view.setLayoutY(y);
@@ -132,7 +137,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		if (element == null) {
 			if (uiExpr.getObj() instanceof OperationBlock) {
 				try {
-					element = loadOperationBlock((OperationBlock<?>) uiExpr.getObj()).getView();
+					element = loadOperationBlock((OperationBlock<?>) uiExpr.getObj(),uiExpr.getParams()).getView();
 				} catch (IOException e) {
 					fatal("cannot load operation block", e);
 				}
@@ -202,7 +207,6 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		Optional<String> varValue = prompt.showAndWait();
 		ret = varValue.isPresent() ? Resolver.resolveVariable(globalCtx, varValue.get()) : null;
 		if(type.isAssignableFrom(Expression.class)) {
-			System.out.println("TEST");
 			ret=new ConstantExpression<>(ret);
 		}
 		if (ret != null && !type.isInstance(ret)) {
@@ -222,8 +226,10 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		label.setOnMouseClicked(evt -> {
 			if (evt.getClickCount() == 2) {
 				String varName = loadVariableName(paramClass, text.toString());
-				if (varName != null&&setter!=null) {
-					setter.accept(varName);
+				if (varName != null) {
+					if(setter!=null) {
+						setter.accept(varName);
+					}
 					label.setText(varName);
 					text.setLength(varName.length());
 					text.replace(0, varName.length(), varName);
@@ -244,16 +250,16 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 			final Coord dragDelta = new Coord();
 			try {
 				ParameterizedGenericObject<?> copy = uiExpr.createCopy();
+				System.out.println("allow copy drag "+uiExpr.getParams()+" to "+copy.getParams());
 				Node node = getUIElement(copy);
-
 				addElementToPaneAndFillDeltaWithPosition(dragDelta, node, editorPane, e);
 
 				outerNode.setOnMouseDragged(evt -> {
 					node.setLayoutX(dragDelta.getX() + evt.getSceneX());
 					node.setLayoutY(calculateDrag(dragDelta.getY(), evt.getSceneY(), 0));
 				});
-				allowDragDrop(node, Arrays.asList(uiExpr));
-				outerNode.setOnMouseReleased(evt -> drop(node, evt, Arrays.asList(uiExpr)));
+				allowDragDrop(node, Arrays.asList(copy));
+				outerNode.setOnMouseReleased(evt -> drop(node, evt, Arrays.asList(copy)));
 
 			} catch (YAGPLException e1) {
 				error("Cannot create copy", e1);
@@ -271,6 +277,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 	}
 
 	public void drop(Node node, MouseEvent evt, List<ParameterizedGenericObject<?>> toDrop) {
+		System.out.println("drop "+toDrop.stream().map(ParameterizedGenericObject::getParams).map(Object::toString).collect(Collectors.joining(",")));
 		Iterator<OperationBlockViewController> funcIter = operationBlocks.values().iterator();
 		boolean goOn = true;
 		if (toDrop.isEmpty() || toDrop.get(0).getObj() instanceof Function<?>) {
@@ -295,9 +302,12 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 
 	private static boolean addCopiesToFuncViewIfIntersects(MouseEvent evt, OperationBlockViewController ctl,
 			List<ParameterizedGenericObject<?>> toAdd) throws YAGPLException {
+		System.out.println("add copy if intersect "+toAdd.stream().map(ParameterizedGenericObject::getParams).map(params->params.toString()+"("+Arrays.toString(params)+")").collect(Collectors.joining(",")));
 		List<ParameterizedGenericObject<?>> toAddChanged = new ArrayList<>();
 		for (ParameterizedGenericObject<?> add : toAdd) {
-			toAddChanged.add(add.createCopy());
+			ParameterizedGenericObject<?> copy = add.createCopy();
+			copy.setParams(add.getParams());
+			toAddChanged.add(copy);
 		}
 		return ctl.addIfIntersects(evt, toAddChanged);
 	}

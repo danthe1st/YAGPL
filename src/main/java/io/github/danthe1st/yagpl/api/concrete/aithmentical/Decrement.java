@@ -1,4 +1,4 @@
-package io.github.danthe1st.yagpl.api.concrete.debug;
+package io.github.danthe1st.yagpl.api.concrete.aithmentical;
 
 import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.StandardElement;

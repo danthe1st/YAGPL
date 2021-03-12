@@ -14,10 +14,11 @@ import io.github.danthe1st.yagpl.api.throwables.IllegalArgumentTypeException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
 @StandardElement
-public class Loop extends OperationBlock {
+public class Loop extends OperationBlock<Void> {
 	public Loop() {
 		this("Loop",new ArrayList<>());
 	}
+	
 	protected Loop(String name, List<ParameterizedGenericObject<?>> operations) {
 		super(name, operations,new Class<?>[] {Expression.class});
 	}
@@ -28,9 +29,8 @@ public class Loop extends OperationBlock {
 			throw new IllegalArgumentCountException(params.length, 1);
 		}
 		if(!(params[0] instanceof Expression)) {
-			throw new IllegalArgumentTypeException(0, Expression.class, params[0].getClass());
+			throw new IllegalArgumentTypeException(0, Expression.class, params[0]==null?void.class:params[0].getClass());
 		}
-		@SuppressWarnings("unchecked")
 		Expression<?> exp=(Expression<?>) params[0];
 		while(Boolean.TRUE.equals(exp.execute(ctx, params))) {
 			executeAll(ctx, params);
@@ -39,7 +39,7 @@ public class Loop extends OperationBlock {
 	}
 	
 	@Override
-	public GenericObject createCopy() throws YAGPLException {
+	public GenericObject<Void> createCopy() throws YAGPLException {
 		return super.createCopy();
 	}
 }
