@@ -32,7 +32,7 @@ public class Loop extends OperationBlock<Void> {
 			throw new IllegalArgumentTypeException(0, Expression.class, params[0]==null?void.class:params[0].getClass());
 		}
 		Expression<?> exp=(Expression<?>) params[0];
-		while(Boolean.TRUE.equals(exp.execute(ctx, params))) {
+		while(Boolean.TRUE.equals(exp.execute(ctx, params))&&!Thread.currentThread().isInterrupted()) {
 			executeAll(ctx, params);
 		}
 		return null;

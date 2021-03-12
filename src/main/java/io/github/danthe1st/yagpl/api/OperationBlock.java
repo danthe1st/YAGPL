@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import io.github.danthe1st.yagpl.api.concrete.ResolveableExpression;
+import io.github.danthe1st.yagpl.api.constant.ConstantExpression;
+import io.github.danthe1st.yagpl.api.throwables.IllegalArgumentTypeException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
 
@@ -29,8 +32,19 @@ public abstract class OperationBlock<R> extends GenericObjectAdapter<R> {
 			ParameterizedGenericObject<?> next = it.next();
 			String[] paramsNamesToPass = next.getParams();
 			Object[] paramsToPass = new Object[paramsNamesToPass.length];
+			Class<?>[] expectedParams=next.getObj().getExpectedParameters();
 			for (int i = 0; i < paramsNamesToPass.length; i++) {
 				paramsToPass[i] = Resolver.resolveVariable(ctx, paramsNamesToPass[i]);
+				if(paramsToPass[i]!=null) {
+					Class<?> expectedParam=expectedParams[i];
+					if(expectedParam!=null&&!expectedParam.isInstance(paramsToPass[i])) {
+						if(expectedParam.isAssignableFrom(Expression.class)) {
+							paramsToPass[i]=new ResolveableExpression(paramsNamesToPass[i]);
+						}else {
+							throw new IllegalArgumentTypeException(i, expectedParam, paramsToPass[i].getClass());
+						}
+					}
+				}
 			}
 			Object returnValue = next.getObj().execute(ctx, paramsToPass);
 			ctx.setVariable("$?", returnValue);

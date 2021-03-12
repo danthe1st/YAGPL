@@ -62,7 +62,6 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 			block.getOperations().addAll(index, operationsToAdd);
 			for (int i = 0; i < operationsToAdd.size(); i++) {
 				ParameterizedGenericObject<?> op = operationsToAdd.get(i);
-				System.out.println("add because of intersect "+op.getParams());
 				operationBox.getChildren().add(Math.min(index + i, operationBox.getChildren().size()), editor.getUIElement(op));
 				updateElementListeners(op);
 			}
@@ -103,7 +102,6 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 	}
 	
 	public void setOperationBlock(OperationBlock<?> function,String[] paramNames) {
-		System.out.println("set block with params "+paramNames);
 		this.block = function;
 		titleBox.getChildren().clear();
 		titleBox.getChildren().add(title);
@@ -121,7 +119,6 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 				Class<?> param = expectedParameters[i];
 				Node paramLabel = editor.createParameterLabel(param,
 						paramNames[index]==null?(param == null ? "<?>" : "<" + param.getSimpleName() + ">"):paramNames[index], resolvedParam->{
-							System.out.println("set index "+index+" of param names "+paramNames+ "("+Arrays.toString(paramNames)+") to "+resolvedParam);
 							paramNames[index]=resolvedParam;
 						});
 				titleBox.getChildren().add(paramLabel);

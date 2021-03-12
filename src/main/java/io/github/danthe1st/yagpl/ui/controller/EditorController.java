@@ -104,7 +104,6 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 
 	private OperationBlockViewController loadOperationBlock(OperationBlock<?> func,String[] paramNames) throws IOException {
 		//TODO the params get missing somewhere here
-		System.out.println("load block:  "+paramNames);
 		OperationBlockViewController functionView = main.loadView("OperationBlockView");
 		functionView.setEditor(this);
 		functionView.setOperationBlock(func,paramNames);
@@ -250,7 +249,6 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 			final Coord dragDelta = new Coord();
 			try {
 				ParameterizedGenericObject<?> copy = uiExpr.createCopy();
-				System.out.println("allow copy drag "+uiExpr.getParams()+" to "+copy.getParams());
 				Node node = getUIElement(copy);
 				addElementToPaneAndFillDeltaWithPosition(dragDelta, node, editorPane, e);
 
@@ -277,7 +275,6 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 	}
 
 	public void drop(Node node, MouseEvent evt, List<ParameterizedGenericObject<?>> toDrop) {
-		System.out.println("drop "+toDrop.stream().map(ParameterizedGenericObject::getParams).map(Object::toString).collect(Collectors.joining(",")));
 		Iterator<OperationBlockViewController> funcIter = operationBlocks.values().iterator();
 		boolean goOn = true;
 		if (toDrop.isEmpty() || toDrop.get(0).getObj() instanceof Function<?>) {
@@ -302,7 +299,6 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 
 	private static boolean addCopiesToFuncViewIfIntersects(MouseEvent evt, OperationBlockViewController ctl,
 			List<ParameterizedGenericObject<?>> toAdd) throws YAGPLException {
-		System.out.println("add copy if intersect "+toAdd.stream().map(ParameterizedGenericObject::getParams).map(params->params.toString()+"("+Arrays.toString(params)+")").collect(Collectors.joining(",")));
 		List<ParameterizedGenericObject<?>> toAddChanged = new ArrayList<>();
 		for (ParameterizedGenericObject<?> add : toAdd) {
 			ParameterizedGenericObject<?> copy = add.createCopy();
