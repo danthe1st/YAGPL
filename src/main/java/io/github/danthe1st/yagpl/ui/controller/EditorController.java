@@ -56,8 +56,7 @@ import javafx.scene.text.FontWeight;
 
 public class EditorController extends ControllerAdapter<BorderPane> implements Initializable {
 
-	private Map<GenericObject<?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK,
-			ReferenceStrength.WEAK);
+	private Map<GenericObject<?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK, ReferenceStrength.WEAK);
 
 	private Map<String, OperationBlockViewController> operationBlocks = new ReferenceMap<>(ReferenceStrength.WEAK,
 			ReferenceStrength.WEAK);
@@ -91,10 +90,11 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		File file = new File("program.dat");
 		if (file.exists()) {
 			try (ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
-				
+
 				int size = ois.readInt();
 				for (int i = 0; i < size; i++) {
-					addOperationBlock((OperationBlock<?>) ois.readObject(),ois.readDouble(),ois.readDouble(),(String[])ois.readObject());
+					addOperationBlock((OperationBlock<?>) ois.readObject(), ois.readDouble(), ois.readDouble(),
+							(String[]) ois.readObject());
 				}
 			} catch (IOException | ClassNotFoundException e) {
 				error("loading failed", e);
@@ -102,29 +102,32 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		}
 	}
 
-	private OperationBlockViewController loadOperationBlock(OperationBlock<?> func,String[] paramNames) throws IOException {
+	private OperationBlockViewController loadOperationBlock(OperationBlock<?> func, String[] paramNames)
+			throws IOException {
 		//TODO the params get missing somewhere here
 		OperationBlockViewController functionView = main.loadView("OperationBlockView");
 		functionView.setEditor(this);
-		functionView.setOperationBlock(func,paramNames);
+		functionView.setOperationBlock(func, paramNames);
 		nodeIndex.put(func, functionView.getView());
 		allowDrag(functionView.getView());
-		if(!(func instanceof Function<?>)) {
-			functionView.getView().setOnMouseReleased(evt ->{
-				drop(functionView.getView(), evt, Arrays.asList(new ParameterizedGenericObject<>(func,functionView.getParamNames())));
+		if (!(func instanceof Function<?>)) {
+			functionView.getView().setOnMouseReleased(evt -> {
+				drop(functionView.getView(), evt,
+						Arrays.asList(new ParameterizedGenericObject<>(func, functionView.getParamNames())));
 				functionView.getView().setOnMouseReleased(null);
 			});
 			//allowDrop(functionView.getView(), Arrays.asList(new ParameterizedGenericObject<>(func,func.getExpectedParameters()==null?new String[0]:new String[func.getExpectedParameters().length])));
 		}
 		operationBlocks.put(func.getName(), functionView);
 		nodeIndex.put(func, functionView.getView());
-		
+
 		return functionView;
 	}
 
-	public OperationBlockViewController addOperationBlock(OperationBlock<?> func,double x,double y,String[] params) throws IOException {
-		OperationBlockViewController operationBlockViewView = loadOperationBlock(func,params);
-		Node view=operationBlockViewView.getView();
+	public OperationBlockViewController addOperationBlock(OperationBlock<?> func, double x, double y, String[] params)
+			throws IOException {
+		OperationBlockViewController operationBlockViewView = loadOperationBlock(func, params);
+		Node view = operationBlockViewView.getView();
 		view.setLayoutX(x);
 		view.setLayoutY(y);
 		editorPane.getChildren().add(view);
@@ -136,7 +139,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		if (element == null) {
 			if (uiExpr.getObj() instanceof OperationBlock) {
 				try {
-					element = loadOperationBlock((OperationBlock<?>) uiExpr.getObj(),uiExpr.getParams()).getView();
+					element = loadOperationBlock((OperationBlock<?>) uiExpr.getObj(), uiExpr.getParams()).getView();
 				} catch (IOException e) {
 					fatal("cannot load operation block", e);
 				}
@@ -150,7 +153,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 				Class<?>[] expectedParameters = uiExpr.getObj().getExpectedParameters();
 				if (expectedParameters == null) {
 					for (String param : uiExpr.getParams()) {
-						Label l=new Label(param);
+						Label l = new Label(param);
 						box.getChildren().add(l);
 					}
 					Label anyArgsLabel = new Label("<...>");// TODO also for available elements..?
@@ -205,8 +208,8 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		prompt.setHeaderText("Please resolve variable " + varName + " (" + type.getSimpleName() + ")");
 		Optional<String> varValue = prompt.showAndWait();
 		ret = varValue.isPresent() ? Resolver.resolveVariable(globalCtx, varValue.get()) : null;
-		if(type.isAssignableFrom(Expression.class)) {
-			ret=new ConstantExpression<>(ret);
+		if (type.isAssignableFrom(Expression.class)) {
+			ret = new ConstantExpression<>(ret);
 		}
 		if (ret != null && !type.isInstance(ret)) {
 			throw new NotResolveableException();
@@ -226,7 +229,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 			if (evt.getClickCount() == 2) {
 				String varName = loadVariableName(paramClass, text.toString());
 				if (varName != null) {
-					if(setter!=null) {
+					if (setter != null) {
 						setter.accept(varName);
 					}
 					label.setText(varName);
@@ -271,24 +274,29 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 	}
 
 	private void allowDrop(Node node, List<ParameterizedGenericObject<?>> toDrop) {
-		node.setOnMouseReleased(evt ->drop(node, evt, toDrop));
+		node.setOnMouseReleased(evt -> drop(node, evt, toDrop));
 	}
 
 	public void drop(Node node, MouseEvent evt, List<ParameterizedGenericObject<?>> toDrop) {
 		Iterator<OperationBlockViewController> funcIter = operationBlocks.values().iterator();
-		boolean goOn = true;
+		OperationBlockViewController inserted = null;
 		if (toDrop.isEmpty() || toDrop.get(0).getObj() instanceof Function<?>) {
 			return;
 		}
-		while (goOn && funcIter.hasNext()) {
+		while (inserted == null && funcIter.hasNext()) {
 			OperationBlockViewController funcView = funcIter.next();
 			try {
-				goOn = !addCopiesToFuncViewIfIntersects(evt, funcView, toDrop);
+				if (funcView.getView() != node) {
+					if (addCopiesToFuncViewIfIntersects(evt, funcView, toDrop)) {
+						inserted = funcView;
+					}
+
+				}
 			} catch (YAGPLException e1) {
 				e1.printStackTrace();// TODO
 			}
 		}
-		if (!goOn) {
+		if (inserted != null && node.getParent() != inserted.getView()) {
 			if (node.getParent() instanceof Pane) {
 				((Pane) node.getParent()).getChildren().remove(node);
 			} else if (!editorPane.getChildren().remove(node)) {
@@ -316,21 +324,21 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 			protected void updateItem(ParameterizedGenericObject<?> item, boolean empty) {
 				if (!empty && item != null) {
 					Node elem;
-//					if (item.getObj() instanceof Function) {
-//						if (nodeIndex.containsKey(item.getObj())) {
-//							elem = getUIElement(item);
-//						} else {
-//							elem = new Label("Function");
-//							nodeIndex.put(item.getObj(), elem);
-//						}
-//					} else {
-						elem = getUIElement(item);
-						if (elem instanceof Parent) {
-							for (Node node : ((Parent) elem).getChildrenUnmodifiable()) {
-								node.setOnMouseClicked(null);
-							}
+					//					if (item.getObj() instanceof Function) {
+					//						if (nodeIndex.containsKey(item.getObj())) {
+					//							elem = getUIElement(item);
+					//						} else {
+					//							elem = new Label("Function");
+					//							nodeIndex.put(item.getObj(), elem);
+					//						}
+					//					} else {
+					elem = getUIElement(item);
+					if (elem instanceof Parent) {
+						for (Node node : ((Parent) elem).getChildrenUnmodifiable()) {
+							node.setOnMouseClicked(null);
 						}
-//					}
+					}
+					//					}
 					this.setGraphic(elem);
 					allowCopyDrag(item);
 				}

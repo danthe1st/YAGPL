@@ -32,6 +32,7 @@ public abstract class ControllerAdapter<T extends Parent> implements Controller<
 	public T getView() {
 		return view;
 	}
+	
 	@Override
 	public void setGlobalContext(GlobalContext globalCtx) {
 		this.globalCtx=globalCtx;
@@ -119,7 +120,5 @@ public abstract class ControllerAdapter<T extends Parent> implements Controller<
 		public void setY(double y) {
 			this.y = y;
 		}
-		
-		
 	}
 }

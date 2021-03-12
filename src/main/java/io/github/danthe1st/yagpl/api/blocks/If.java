@@ -14,12 +14,12 @@ import io.github.danthe1st.yagpl.api.throwables.IllegalArgumentTypeException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 
 @StandardElement
-public class Loop extends OperationBlock<Void> {
-	public Loop() {
-		this("If",new ArrayList<>());
+public class If extends OperationBlock<Void> {
+	public If() {
+		this("Loop",new ArrayList<>());
 	}
 	
-	protected Loop(String name, List<ParameterizedGenericObject<?>> operations) {
+	protected If(String name, List<ParameterizedGenericObject<?>> operations) {
 		super(name, operations,new Class<?>[] {Expression.class});
 	}
 
@@ -32,7 +32,7 @@ public class Loop extends OperationBlock<Void> {
 			throw new IllegalArgumentTypeException(0, Expression.class, params[0]==null?void.class:params[0].getClass());
 		}
 		Expression<?> exp=(Expression<?>) params[0];
-		if(Boolean.TRUE.equals(exp.execute(ctx, params))&&!Thread.currentThread().isInterrupted()) {
+		while(Boolean.TRUE.equals(exp.execute(ctx, params))&&!Thread.currentThread().isInterrupted()) {
 			executeAll(ctx, params);
 		}
 		return null;

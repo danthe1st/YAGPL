@@ -22,7 +22,7 @@ public class FunctionContext implements Context{
 		goOn=false;
 	}
 	public boolean isGoOn() {
-		return goOn;
+		return goOn&&!Thread.currentThread().isInterrupted();
 	}
 	public Object getVariable(String name) {
 		Object ret=variables.get(name);
