@@ -290,7 +290,6 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 					if (addCopiesToFuncViewIfIntersects(evt, funcView, toDrop)) {
 						inserted = funcView;
 					}
-
 				}
 			} catch (YAGPLException e1) {
 				e1.printStackTrace();// TODO

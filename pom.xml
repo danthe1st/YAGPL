@@ -6,7 +6,7 @@
 	<artifactId>yagpl</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Yet Another Graphical Programming Language</name>
-	<description>I try to create a graphical programming language</description>
+	<description>A graphical programming language made with JavaFX</description>
 	<dependencies>
 		<dependency>
 			<groupId>org.openjfx</groupId>
