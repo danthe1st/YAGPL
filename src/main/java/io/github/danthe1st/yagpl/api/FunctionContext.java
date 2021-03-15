@@ -8,7 +8,7 @@ public class FunctionContext implements Context {
 	private GlobalContext globalCtx;
 	private FunctionContext parentCtx;
 	private GenericObject<?> currentOperation=null;
-	private Object ret = null;
+	private Object objectToReturn = null;
 	private boolean goOn = true;
 	
 	public FunctionContext(GlobalContext globalCtx) {
@@ -21,11 +21,11 @@ public class FunctionContext implements Context {
 	}
 
 	public Object getReturn() {
-		return ret;
+		return objectToReturn;
 	}
 
 	public void doReturn(Object ret) {
-		this.ret = ret;
+		this.objectToReturn = ret;
 		goOn = false;
 	}
 
@@ -59,7 +59,7 @@ public class FunctionContext implements Context {
 	
 	@Override
 	public String toString() {
-		return "FunctionContext [variables=" + variables + ", globalCtx=" + globalCtx + ", ret=" + ret + ", goOn="
+		return "FunctionContext [variables=" + variables + ", globalCtx=" + globalCtx + ", ret=" + objectToReturn + ", goOn="
 				+ goOn + "]";
 	}
 

@@ -72,4 +72,5 @@ public class YAGPLException extends Exception {
 		
 		return this;
 	}
+	
 }

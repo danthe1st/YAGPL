@@ -180,6 +180,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 				element = box;
 				nodeIndex.put(uiExpr.getObj(), element);
 			}
+			element.setViewOrder(1);
 		}
 		return element;
 	}
@@ -277,6 +278,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 
 	public void drop(Node node, MouseEvent evt, List<ParameterizedGenericObject<?>> toDrop) {
 		Iterator<OperationBlockViewController> funcIter = operationBlocks.values().iterator();
+		
 		OperationBlockViewController inserted = null;
 		if (toDrop.isEmpty() || toDrop.get(0).getObj() instanceof Function<?>) {
 			return;
@@ -284,7 +286,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		while (inserted == null && funcIter.hasNext()) {
 			OperationBlockViewController funcView = funcIter.next();
 			try {
-				if (funcView.getView() != node) {
+				if (funcView.getView() != node && funcView.getView().isVisible()) {
 					if (addCopiesToFuncViewIfIntersects(evt, funcView, toDrop)) {
 						inserted = funcView;
 					}
@@ -341,6 +343,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 				}
 			}
 		});
+		editorPane.setViewOrder(-10);
 	}
 
 	public Pane getEditorPane() {
