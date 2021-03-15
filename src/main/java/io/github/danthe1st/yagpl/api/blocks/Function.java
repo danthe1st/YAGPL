@@ -33,14 +33,6 @@ public class Function<R> extends OperationBlock<R>{
 		executeAll(outerCtx, params);
 		return (R) innerCtx.getReturn();//TODO check with instanceof or...whatever
 	}
-//	public R executeAndReturn(FunctionContext outerCtx, Object... params) {
-//		FunctionContext innerCtx = new FunctionContext(outerCtx);
-//		for (int i = 0; i < params.length; i++) {
-//			innerCtx.setVariable("param" + i, params[i]);
-//		}
-//		//executeAll(innerCtx, params);
-//		return innerCtx.getReturn();
-//	}
 	@Override
 	public GenericObject<R> createCopy() throws YAGPLException {
 		@SuppressWarnings("unchecked")

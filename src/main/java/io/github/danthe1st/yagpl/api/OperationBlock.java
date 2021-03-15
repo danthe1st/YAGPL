@@ -33,6 +33,7 @@ public abstract class OperationBlock<R> extends GenericObjectAdapter<R> {
 			String[] paramsNamesToPass = next.getParams();
 			Object[] paramsToPass = new Object[paramsNamesToPass.length];
 			Class<?>[] expectedParams=next.getObj().getExpectedParameters();
+			ctx.setCurrentOperation(next.getObj());
 			for (int i = 0; i < paramsNamesToPass.length; i++) {
 				paramsToPass[i] = Resolver.resolveVariable(ctx, paramsNamesToPass[i]);
 				if(paramsToPass[i]!=null) {
@@ -41,7 +42,7 @@ public abstract class OperationBlock<R> extends GenericObjectAdapter<R> {
 						if(expectedParam.isAssignableFrom(Expression.class)) {
 							paramsToPass[i]=new ResolveableExpression(paramsNamesToPass[i]);
 						}else {
-							throw new IllegalArgumentTypeException(i, expectedParam, paramsToPass[i].getClass());
+							throw new IllegalArgumentTypeException(ctx,i, expectedParam, paramsToPass[i].getClass());
 						}
 					}
 				}

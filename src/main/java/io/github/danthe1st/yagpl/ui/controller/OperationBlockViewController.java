@@ -33,6 +33,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
 public class OperationBlockViewController extends ControllerAdapter<BorderPane> {
@@ -62,10 +63,12 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 			block.getOperations().addAll(index, operationsToAdd);
 			for (int i = 0; i < operationsToAdd.size(); i++) {
 				ParameterizedGenericObject<?> op = operationsToAdd.get(i);
-				operationBox.getChildren().add(Math.min(index + i, operationBox.getChildren().size()), editor.getUIElement(op));
+				ObservableList<Node> children = operationBox.getChildren();
+				children.add(Math.min(index + i, children.size()), editor.getUIElement(op));
 				updateElementListeners(op);
 			}
-			adjustPositionsFrom(index, posAndIndex.getValue());
+			Platform.runLater(()->adjustPositionsFrom(index, posAndIndex.getValue()));
+			
 			return true;
 		} else {
 			return false;
@@ -78,6 +81,10 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 		ObservableList<Node> children = operationBox.getChildren();
 		for (int i = startIndex; i < children.size(); i++) {
 			Node elem = children.get(i);
+			elem.applyCss();
+			if(elem instanceof Pane) {
+				((Pane) elem).layout();
+			}
 			AnchorPane.setTopAnchor(elem, valueAtStartIndex);
 			valueAtStartIndex += estimateHeight(elem, 0);
 		}

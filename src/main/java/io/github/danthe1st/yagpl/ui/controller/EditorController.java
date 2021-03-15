@@ -58,7 +58,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 
 	private Map<GenericObject<?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK, ReferenceStrength.WEAK);
 
-	private Map<String, OperationBlockViewController> operationBlocks = new ReferenceMap<>(ReferenceStrength.WEAK,
+	private Map<OperationBlock<?>, OperationBlockViewController> operationBlocks = new ReferenceMap<>(ReferenceStrength.WEAK,
 			ReferenceStrength.WEAK);
 
 	@FXML
@@ -73,7 +73,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 	void save(ActionEvent event) {
 		try (ObjectOutputStream oos = new ObjectOutputStream(
 				new BufferedOutputStream(new FileOutputStream("program.dat")))) {
-			Map<String, OperationBlockViewController> copy = new HashMap<>(operationBlocks);
+			Map<OperationBlock<?>, OperationBlockViewController> copy = new HashMap<>(operationBlocks);
 			oos.writeInt(copy.size());
 			for (OperationBlockViewController operationBlockViewCtl : copy.values()) {
 				oos.writeObject(operationBlockViewCtl.getOperationBlock());
@@ -104,7 +104,6 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 
 	private OperationBlockViewController loadOperationBlock(OperationBlock<?> func, String[] paramNames)
 			throws IOException {
-		//TODO the params get missing somewhere here
 		OperationBlockViewController functionView = main.loadView("OperationBlockView");
 		functionView.setEditor(this);
 		functionView.setOperationBlock(func, paramNames);
@@ -116,9 +115,8 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 						Arrays.asList(new ParameterizedGenericObject<>(func, functionView.getParamNames())));
 				functionView.getView().setOnMouseReleased(null);
 			});
-			//allowDrop(functionView.getView(), Arrays.asList(new ParameterizedGenericObject<>(func,func.getExpectedParameters()==null?new String[0]:new String[func.getExpectedParameters().length])));
 		}
-		operationBlocks.put(func.getName(), functionView);
+		operationBlocks.put(func, functionView);
 		nodeIndex.put(func, functionView.getView());
 
 		return functionView;

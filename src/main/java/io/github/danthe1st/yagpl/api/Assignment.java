@@ -12,12 +12,12 @@ public class Assignment extends GenericObjectAdapter<Void>{
 	@Override
 	public Void execute(FunctionContext ctx, Object... params) throws IllegalArgumentCountException, IllegalArgumentTypeException {
 		if(params.length!=2) {
-			throw new IllegalArgumentCountException(params.length,1);
+			throw new IllegalArgumentCountException(ctx,params.length,1);
 		}
 		if(params[0] instanceof String) {
 			ctx.setVariable((String)params[0], params[1]);
 		}else {
-			throw new IllegalArgumentTypeException(0, String.class, params[0].getClass());
+			throw new IllegalArgumentTypeException(ctx,0, String.class, params[0].getClass());
 		}
 		return null;
 	}

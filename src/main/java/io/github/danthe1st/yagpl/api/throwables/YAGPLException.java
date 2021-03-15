@@ -6,65 +6,70 @@ import java.lang.module.ModuleDescriptor;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.github.danthe1st.yagpl.api.Context;
 import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.GenericObject;
 
 public class YAGPLException extends Exception {
 	private static final long serialVersionUID = -4080281387365480014L;
+	
+	private FunctionContext ctx;
 
+	public YAGPLException(FunctionContext ctx) {
+		super();
+		this.ctx=ctx;
+		fillInStackTrace();
+	}
+	
 	public YAGPLException() {
 		super();
 	}
 
-	public YAGPLException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+	public YAGPLException(FunctionContext ctx,String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
 		super(message, cause, enableSuppression, writableStackTrace);
+		this.ctx=ctx;
+		fillInStackTrace();
 	}
 
-	public YAGPLException(String message, Throwable cause) {
+	public YAGPLException(FunctionContext ctx,String message, Throwable cause) {
 		super(message, cause);
+		this.ctx=ctx;
+		fillInStackTrace();
 	}
 
+	public YAGPLException(FunctionContext ctx,String message) {
+		super(message);
+		this.ctx=ctx;
+		fillInStackTrace();
+	}
+	
 	public YAGPLException(String message) {
 		super(message);
 	}
 
+	public YAGPLException(FunctionContext ctx,Throwable cause) {
+		super(cause);
+		this.ctx=ctx;
+		fillInStackTrace();
+	}
+	
 	public YAGPLException(Throwable cause) {
 		super(cause);
 	}
 
 	@Override
 	public synchronized Throwable fillInStackTrace() {
-		StackWalker stackWalker=StackWalker.getInstance();
-		setStackTrace(stackWalker.walk(frames->frames
-				.filter(YAGPLException::isExecuteFrame)
-				.map(YAGPLException::convertStackFrameToStackTraceElement)
-				.toArray(StackTraceElement[]::new)
-		));
+		FunctionContext context=this.ctx;
+		List<StackTraceElement> stackTraceElements=new ArrayList<>();
+		while(context!=null) {
+			GenericObject<?> operation = ctx.getCurrentOperation();
+			if(operation!=null) {
+				stackTraceElements.add(new StackTraceElement("Main", operation.getName(), operation.getClass().getCanonicalName(), 0));
+			}
+			context=context.getParentCtx();
+		}
+		setStackTrace(stackTraceElements.toArray(StackTraceElement[]::new));
+		
 		return this;
 	}
-	private static boolean isExecuteFrame(StackFrame frame) {
-		
-		if(!frame.getDeclaringClass().isAssignableFrom(GenericObject.class)) {
-			return false;
-		}
-		if(!"execute".equals(frame.getMethodName())) {
-			return false;
-		}
-		MethodType methodType = frame.getMethodType();
-		if(methodType.parameterCount()==0) {
-			return false;
-		}
-		return FunctionContext.class.isAssignableFrom(methodType.parameterArray()[0]);
-	}
-	private static StackTraceElement convertStackFrameToStackTraceElement(StackFrame frame) {
-		return new StackTraceElement(
-				frame.getDeclaringClass().getClassLoader().getName(),
-				frame.getDeclaringClass().getModule().getName(),
-				frame.getDeclaringClass().getModule().getDescriptor().version().map(Object::toString).orElse(null),
-				frame.getClassName(),
-				frame.getMethodName(),
-				frame.getFileName(),
-				frame.getLineNumber());
-	}
-
 }
