@@ -42,12 +42,12 @@ public abstract class ControllerAdapter<T extends Parent> implements Controller<
 		alert.showAndWait();
 	}
 	public void error(String text,Exception e) {
-		error(text);
 		e.printStackTrace();
+		error(text);
 	}
 	public void fatal(String text,Exception e) {
-		error(text);
 		e.printStackTrace();
+		error(text);
 		Platform.exit();
 	}
 	

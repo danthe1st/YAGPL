@@ -7,6 +7,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import io.github.danthe1st.yagpl.api.Expression;
 import io.github.danthe1st.yagpl.api.FunctionContext;
@@ -50,7 +53,7 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 
 	private OperationBlock<?> block;
 	private EditorController editor;
-	
+
 	private String[] paramNames;
 
 	public boolean addIfIntersects(MouseEvent event, List<ParameterizedGenericObject<?>> operationsToAdd) {
@@ -67,8 +70,8 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 				children.add(Math.min(index + i, children.size()), editor.getUIElement(op));
 				updateElementListeners(op);
 			}
-			Platform.runLater(()->adjustPositionsFrom(index, posAndIndex.getValue()));
-			
+			Platform.runLater(() -> adjustPositionsFrom(index, posAndIndex.getValue()));
+
 			return true;
 		} else {
 			return false;
@@ -82,7 +85,7 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 		for (int i = startIndex; i < children.size(); i++) {
 			Node elem = children.get(i);
 			elem.applyCss();
-			if(elem instanceof Pane) {
+			if (elem instanceof Pane) {
 				((Pane) elem).layout();
 			}
 			AnchorPane.setTopAnchor(elem, valueAtStartIndex);
@@ -107,8 +110,8 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 	public void setEditor(EditorController editor) {
 		this.editor = editor;
 	}
-	
-	public void setOperationBlock(OperationBlock<?> function,String[] paramNames) {
+
+	public void setOperationBlock(OperationBlock<?> function, String[] paramNames) {
 		this.block = function;
 		titleBox.getChildren().clear();
 		titleBox.getChildren().add(title);
@@ -120,13 +123,15 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 			//TODO varargs
 		} else {
 			Class<?>[] expectedParameters = block.getExpectedParameters();
-			this.paramNames=paramNames;
+			this.paramNames = paramNames;
 			for (int i = 0; i < expectedParameters.length; i++) {
-				final int index=i;
+				final int index = i;
 				Class<?> param = expectedParameters[i];
 				Node paramLabel = editor.createParameterLabel(param,
-						paramNames[index]==null?(param == null ? "<?>" : "<" + param.getSimpleName() + ">"):paramNames[index], resolvedParam->{
-							paramNames[index]=resolvedParam;
+						paramNames[index] == null ? (param == null ? "<?>" : "<" + param.getSimpleName() + ">")
+								: paramNames[index],
+						resolvedParam -> {
+							paramNames[index] = resolvedParam;
 						});
 				titleBox.getChildren().add(paramLabel);
 			}
@@ -189,13 +194,14 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 				params = new Object[expectedParameters.length];
 				for (int i = 0; i < expectedParameters.length; i++) {
 					try {
-						if(paramNames[i]==null) {
+						if (paramNames[i] == null) {
 							params[i] = editor.resolveVariable(expectedParameters[i], String.valueOf(i));
-						}else {
+						} else {
 							params[i] = Resolver.resolveVariable(globalCtx, paramNames[i]);
 						}
-						if(expectedParameters[i].isAssignableFrom(Expression.class)&&!(params[i] instanceof Expression)) {
-							params[i]=new ConstantExpression<>(params[i]);
+						if (expectedParameters[i].isAssignableFrom(Expression.class)
+								&& !(params[i] instanceof Expression)) {
+							params[i] = new ConstantExpression<>(params[i]);
 						}
 					} catch (NotResolveableException e) {
 						Alert alert = new Alert(AlertType.ERROR, "Cannot be resolved",
@@ -224,23 +230,19 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 					}
 				}
 			}
-			
-			try {
-				block.execute(new FunctionContext(globalCtx), params);
-			} catch (YAGPLException e) {
-				error("An error occured while executing the block\n"+e.getMessage(), e);
-			}
+			editor.exec(block,params);
+
 		}
 	}
 
 	public OperationBlock<?> getOperationBlock() {
 		return block;
 	}
-	
+
 	public String[] getParamNames() {
 		return paramNames;
 	}
-	
+
 	public void setParamNames(String[] paramNames) {
 		this.paramNames = paramNames;
 	}

@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -24,6 +27,7 @@ import org.apache.commons.collections4.map.AbstractReferenceMap.ReferenceStrengt
 import org.apache.commons.collections4.map.ReferenceMap;
 
 import io.github.danthe1st.yagpl.api.Expression;
+import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.GenericObject;
 import io.github.danthe1st.yagpl.api.OperationBlock;
 import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
@@ -32,6 +36,7 @@ import io.github.danthe1st.yagpl.api.constant.ConstantExpression;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
 import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -68,6 +73,10 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 
 	@FXML
 	private AnchorPane editorPane;
+	
+	private ExecutorService execThreadPool = Executors.newSingleThreadExecutor();
+
+	private Future<?> currentTask;
 
 	@FXML
 	void save(ActionEvent event) {
@@ -348,5 +357,18 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 
 	public Pane getEditorPane() {
 		return editorPane;
+	}
+	
+	public void exec(OperationBlock<?> block,Object[] params) {
+		if(currentTask!=null) {
+			currentTask.cancel(true);
+		}
+		currentTask = execThreadPool.submit(() -> {
+			try {
+				block.execute(new FunctionContext(globalCtx), params);
+			} catch (Exception e) {
+				Platform.runLater(() -> error("An error occured while executing the block\n" + e.getMessage(), e));
+			}
+		});
 	}
 }
