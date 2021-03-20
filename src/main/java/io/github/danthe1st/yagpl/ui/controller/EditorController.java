@@ -21,7 +21,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.map.AbstractReferenceMap.ReferenceStrength;
 import org.apache.commons.collections4.map.ReferenceMap;
@@ -59,25 +58,45 @@ import javafx.scene.layout.Pane;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+/**
+ * controller class for the editor pane
+ * @author dan1st
+ */
 public class EditorController extends ControllerAdapter<BorderPane> implements Initializable {
 
+	/**
+	 * a lookup table used for finding the node associated with a {@link GenericObject}
+	 */
 	private Map<GenericObject<?>, Node> nodeIndex = new ReferenceMap<>(ReferenceStrength.WEAK, ReferenceStrength.WEAK);
 
+	/**
+	 * a lookup table to find the controller managing an {@link OperationBlock}
+	 */
 	private Map<OperationBlock<?>, OperationBlockViewController> operationBlocks = new ReferenceMap<>(ReferenceStrength.WEAK,
 			ReferenceStrength.WEAK);
 
+	/**
+	 * a {@link ListView} containing the template elements
+	 */
 	@FXML
 	private ListView<ParameterizedGenericObject<?>> availableElementView;
 
+	/**
+	 * a list containing the template elements
+	 */
 	private ObservableList<ParameterizedGenericObject<?>> availableElements = FXCollections.observableArrayList();
 
 	@FXML
 	private AnchorPane editorPane;
 	
-	private ExecutorService execThreadPool = Executors.newSingleThreadExecutor();
+	private ExecutorService execThreadPool = Executors.newSingleThreadExecutor(this::createThread);
 
 	private Future<?> currentTask;
 
+	/**
+	 * saves the current operation blocks for later use
+	 * @param event unused
+	 */
 	@FXML
 	void save(ActionEvent event) {
 		try (ObjectOutputStream oos = new ObjectOutputStream(
@@ -95,6 +114,9 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		}
 	}
 
+	/**
+	 * loads operation blocks saved previously
+	 */
 	public void load() {
 		File file = new File("program.dat");
 		if (file.exists()) {
@@ -111,6 +133,13 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		}
 	}
 
+	/**
+	 * loads the UI element of an {@link OperationBlock}
+	 * @param func the {@link OperationBlock} to load the UI for
+	 * @param paramNames the names of the parameters for this {@link OperationBlock}
+	 * @return the controller of the loaded {@link OperationBlock}
+	 * @throws IOException if the controller cannot be loaded
+	 */
 	private OperationBlockViewController loadOperationBlock(OperationBlock<?> func, String[] paramNames)
 			throws IOException {
 		OperationBlockViewController functionView = main.loadView("OperationBlockView");
@@ -131,6 +160,15 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		return functionView;
 	}
 
+	/**
+	 * adds an operation block view at specific coordinates
+	 * @param func the {@link OperationBlock} to add
+	 * @param x the x coordinate of the position where the view should be added to
+	 * @param y the y coordinate of the position where the view should be added to
+	 * @param params the parameter names of the {@link OperationBlock}
+	 * @return the controller of the created view
+	 * @throws IOException if the view cannot be loaded
+	 */
 	public OperationBlockViewController addOperationBlock(OperationBlock<?> func, double x, double y, String[] params)
 			throws IOException {
 		OperationBlockViewController operationBlockViewView = loadOperationBlock(func, params);
@@ -141,6 +179,11 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		return operationBlockViewView;
 	}
 
+	/**
+	 * gets the UI element of a {@link ParameterizedGenericObject} or creates one if it does not exist
+	 * @param uiExpr the {@link ParameterizedGenericObject} to load the UI for
+	 * @return the {@link Node} containing the UI for the {@link ParameterizedGenericObject}
+	 */
 	public Node getUIElement(ParameterizedGenericObject<?> uiExpr) {
 		Node element = nodeIndex.get(uiExpr.getObj());
 		if (element == null) {
@@ -168,7 +211,7 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 					anyArgsLabel.setOnMouseClicked(evt -> {
 						if (evt.getClickCount() == 2) {
 							Node newLabel = createParameterLabel(Object.class, null, value -> uiExpr
-									.setParams(copyArrayAndAddElement(uiExpr.getParams(), value, String[].class)));
+									.setParams(copyArrayAndAddElement(uiExpr.getParams(), value)));
 							box.getChildren().add(box.getChildren().size() - 1, newLabel);
 							newLabel.getOnMouseClicked().handle(evt);
 						}
@@ -176,13 +219,12 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 				} else {
 
 					for (int i = 0; i < expectedParameters.length; i++) {
-						final int iCopy = i;// FIXME do not work on copy of params but real params..?
+						final int iCopy = i;
 						box.getChildren()
 								.add(createParameterLabel(expectedParameters[i],
 										uiExpr.getParams().length > i ? uiExpr.getParams()[i] : null,
 										value -> uiExpr.getParams()[iCopy] = value));
 					}
-
 				}
 				box.applyCss();
 				box.layout();
@@ -194,12 +236,30 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		return element;
 	}
 
-	private <T> T[] copyArrayAndAddElement(T[] arr, T additionalArgument, Class<T[]> cl) {
+	/**
+	 * copies an array and adds an element to it
+	 * @param <T> the type of the array to copy
+	 * @param arr the array to copy
+	 * @param additionalArgument the element to add
+	 * @return a new array with the elements of the old array and a new element
+	 */
+	private <T> T[] copyArrayAndAddElement(T[] arr, T additionalArgument) {
+		@SuppressWarnings("unchecked")//the type is the same as the type of the array
+		Class<? extends T[]> cl=(Class<? extends T[]>)arr.getClass();
+		if(!cl.componentType().isInstance(additionalArgument)) {
+			throw new IllegalArgumentException(additionalArgument+" is not an instance of "+arr);
+		}
 		T[] ret = Arrays.copyOf(arr, arr.length + 1, cl);
 		ret[arr.length] = additionalArgument;
 		return ret;
 	}
 
+	/**
+	 * loads the name of a variable
+	 * @param type the type of the variable
+	 * @param varName the old name of the variable
+	 * @return the new name of the variable
+	 */
 	public String loadVariableName(Class<?> type, String varName) {
 		String typeName = type == null ? "any" : type.getSimpleName();
 		TextInputDialog prompt = new TextInputDialog();
@@ -209,6 +269,13 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		return varValue.isPresent() && !"".equals(varValue.get()) ? varValue.get() : null;
 	}
 
+	/**
+	 * resolves the value of a global variable
+	 * @param type the type of the variable
+	 * @param varName the name of the variable
+	 * @return the value of the variable
+	 * @throws NotResolveableException if the variable cannot be resolved
+	 */
 	public Object resolveVariable(Class<?> type, String varName) throws NotResolveableException {
 		Object ret;
 		TextInputDialog prompt = new TextInputDialog();
@@ -225,6 +292,13 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		return ret;
 	}
 
+	/**
+	 * creates an editable label for a parameter
+	 * @param paramClass the type of the parameter
+	 * @param param the name of the parameter
+	 * @param setter a {@link Consumer} that is executed when the parameter is changed
+	 * @return the parameter label
+	 */
 	public Node createParameterLabel(Class<?> paramClass, String param, Consumer<String> setter) {
 		StringBuilder text;
 		if (param == null) {
@@ -249,19 +323,26 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		return label;
 	}
 
+	/**
+	 * sets the template elements
+	 * @param available the template elements
+	 */
 	public void setAvailableElements(List<ParameterizedGenericObject<?>> available) {
 		availableElements.clear();
 		availableElements.addAll(available);
 	}
 
+	/**
+	 * configures a node so that it can be dragged while a copy of the element is created when dragging it
+	 * @param uiExpr the {@link ParameterizedGenericObject} to allow copy-dragging
+	 */
 	private void allowCopyDrag(ParameterizedGenericObject<?> uiExpr) {
 		Node outerNode = getUIElement(uiExpr);
 		outerNode.setOnMousePressed(e -> {
-			final Coord dragDelta = new Coord();
 			try {
 				ParameterizedGenericObject<?> copy = uiExpr.createCopy();
 				Node node = getUIElement(copy);
-				addElementToPaneAndFillDeltaWithPosition(dragDelta, node, editorPane, e);
+				final Position dragDelta=addElementToPaneAndFillDeltaWithPosition(node, editorPane, e);
 
 				outerNode.setOnMouseDragged(evt -> {
 					node.setLayoutX(dragDelta.getX() + evt.getSceneX());
@@ -276,15 +357,22 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		});
 	}
 
+	/**
+	 * allow dragging and dropping
+	 * @param node the node that should be dragged/dropped
+	 * @param toDrop the elements to drop when the node is dropped in an {@link OperationBlock}
+	 */
 	public void allowDragDrop(Node node, List<ParameterizedGenericObject<?>> toDrop) {
 		allowDrag(node);
-		allowDrop(node, toDrop);
-	}
-
-	private void allowDrop(Node node, List<ParameterizedGenericObject<?>> toDrop) {
 		node.setOnMouseReleased(evt -> drop(node, evt, toDrop));
 	}
 
+	/**
+	 * drops an element
+	 * @param node the UI element to drop
+	 * @param evt the {@link MouseEvent} used for calculating the position
+	 * @param toDrop the elements to drop
+	 */
 	public void drop(Node node, MouseEvent evt, List<ParameterizedGenericObject<?>> toDrop) {
 		Iterator<OperationBlockViewController> funcIter = operationBlocks.values().iterator();
 		
@@ -313,6 +401,14 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		}
 	}
 
+	/**
+	 * adds copies of one or more {@link ParameterizedGenericObject}s to a function view if the elements intersect
+	 * @param evt the {@link MouseEvent} used for calculating the position
+	 * @param ctl the {@link OperationBlockViewController function view} to copy the elements
+	 * @param toAdd the elements to copy
+	 * @return <code>true</code> if the elements were copied, else <code>false</code>
+	 * @throws YAGPLException if an error occured while copying
+	 */
 	private static boolean addCopiesToFuncViewIfIntersects(MouseEvent evt, OperationBlockViewController ctl,
 			List<ParameterizedGenericObject<?>> toAdd) throws YAGPLException {
 		List<ParameterizedGenericObject<?>> toAddChanged = new ArrayList<>();
@@ -332,14 +428,6 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 			protected void updateItem(ParameterizedGenericObject<?> item, boolean empty) {
 				if (!empty && item != null) {
 					Node elem;
-					//					if (item.getObj() instanceof Function) {
-					//						if (nodeIndex.containsKey(item.getObj())) {
-					//							elem = getUIElement(item);
-					//						} else {
-					//							elem = new Label("Function");
-					//							nodeIndex.put(item.getObj(), elem);
-					//						}
-					//					} else {
 					elem = getUIElement(item);
 					if (elem instanceof Parent) {
 						for (Node node : ((Parent) elem).getChildrenUnmodifiable()) {
@@ -359,7 +447,12 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 		return editorPane;
 	}
 	
-	public void exec(OperationBlock<?> block,Object[] params) {
+	/**
+	 * executes an {@link OperationBlock}
+	 * @param block the {@link OperationBlock} to execute
+	 * @param params the parameters for the {@link OperationBlock}
+	 */
+	public void exec(OperationBlock<?> block, Object[] params) {
 		if(currentTask!=null) {
 			currentTask.cancel(true);
 		}
@@ -370,5 +463,11 @@ public class EditorController extends ControllerAdapter<BorderPane> implements I
 				Platform.runLater(() -> error("An error occured while executing the block\n" + e.getMessage(), e));
 			}
 		});
+	}
+	
+	private Thread createThread(Runnable r) {
+		Thread t=new Thread(r);
+		t.setDaemon(true);
+		return t;
 	}
 }

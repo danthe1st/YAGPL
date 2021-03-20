@@ -19,14 +19,25 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+/**
+ * Main class that instantiates the UI
+ * @author dan1st
+ */
 public class YAGPL extends Application{
 	
 	private GlobalContext globalCtx=new GlobalContext();
 	
+	/**
+	 * start the UI
+	 * @param args arguments that are passed to JavaFX
+	 */
 	public static void main(String[] args) {
 		Application.launch(args);
 	}
 
+	/**
+	 * starts the application
+	 */
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		EditorController ctl=loadView("Editor");
@@ -36,6 +47,16 @@ public class YAGPL extends Application{
 		primaryStage.setScene(new Scene(ctl.getView()));
 		primaryStage.show();
 	}
+	/**
+	 * loads the default operations annotated with {@link StandardElement}.<br/>
+	 * Only elements in the package {@code io.github.danthe1st.yagpl} are used<br/>
+	 * @return a {@link List} containing all standard YAGPL operations
+	 * @throws InstantiationException if an operation annotated with {@link StandardElement} is abstract
+	 * @throws IllegalAccessException if an operation annotated with {@link StandardElement} cannot be accessed
+	 * @throws InvocationTargetException if an exception occurred while creating an operation annotated with {@link StandardElement}
+	 * @throws NoSuchMethodException if an operation annotated with {@link StandardElement} does not declare a no-args-constructor
+	 * @throws SecurityException if the {@link SecurityManager} does not permit creating an operation annotated with {@link StandardElement}
+	 */
 	private static List<ParameterizedGenericObject<?>> load() throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		List<ParameterizedGenericObject<?>> operations=new ArrayList<>();
 		Reflections reflections=new Reflections("io.github.danthe1st.yagpl");
@@ -51,6 +72,14 @@ public class YAGPL extends Application{
 		}
 		return operations;
 	}
+	/**
+	 * loads a view by its name
+	 * @param <C> the type of the associated {@link Controller}
+	 * @param <V> the type of the root element if the loaded view
+	 * @param name the name of the view to load
+	 * @return the controller of the view
+	 * @throws IOException if the view does not exist
+	 */
 	public <C extends Controller<V>,V extends Parent> C loadView(String name) throws IOException {
 		FXMLLoader loader=new FXMLLoader(this.getClass().getResource("view/"+name+".fxml"));
 		V editor = loader.load();

@@ -39,6 +39,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
+/**
+ * controller for a function view
+ * @author dan1st
+ *
+ */
 public class OperationBlockViewController extends ControllerAdapter<BorderPane> {
 
 	@FXML
@@ -56,8 +61,14 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 
 	private String[] paramNames;
 
+	/**
+	 * adds one or more operations to this function view if the mouse pointer intersects with this function view
+	 * @param event the {@link MouseEvent} used for calculating the cursor position
+	 * @param operationsToAdd the operations to add to this function view
+	 * @return <code>true</code> if the operations were added, else <code>false</code>
+	 */
 	public boolean addIfIntersects(MouseEvent event, List<ParameterizedGenericObject<?>> operationsToAdd) {
-		Coord coord = getAbsoluteCoord(operationBox);
+		Position coord = getAbsoluteCoord(operationBox);
 		Bounds bounds = new BoundingBox(coord.getX(), coord.getY(), operationBox.getWidth(), operationBox.getHeight());
 		if (bounds.intersects(event.getSceneX(), event.getSceneY(), 0, 0)) {
 			Map.Entry<Integer, Double> posAndIndex = findIndexAndPositionToInsert(event.getSceneY() - coord.getY());
@@ -78,6 +89,11 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 		}
 	}
 
+	/**
+	 * adjust the positions of the operations
+	 * @param startIndex the start index to adjust operation positions
+	 * @param valueAtStartIndex the position of the element at the start index (cumulative height of the elements before it)
+	 */
 	private void adjustPositionsFrom(int startIndex, double valueAtStartIndex) {
 		operationBox.applyCss();
 		operationBox.layout();
@@ -95,6 +111,11 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 		operationBox.setPrefHeight(valueAtStartIndex + 20);
 	}
 
+	/**
+	 * finds the index and the position to insert an element
+	 * @param posY the position of the element
+	 * @return a {@link Map.Entry} containing the index and the position of the element to insert
+	 */
 	private Map.Entry<Integer, Double> findIndexAndPositionToInsert(double posY) {
 		double currentPos = 0;
 		int i = 0;
@@ -111,6 +132,11 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 		this.editor = editor;
 	}
 
+	/**
+	 * sets the {@link OperationBlock} of this function view
+	 * @param function the new {@link OperationBlock}
+	 * @param paramNames the names of the parameters to set
+	 */
 	public void setOperationBlock(OperationBlock<?> function, String[] paramNames) {
 		this.block = function;
 		titleBox.getChildren().clear();
@@ -144,7 +170,11 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 		Platform.runLater(() -> adjustPositionsFrom(0, 0));
 	}
 
-	private void updateElementListeners(ParameterizedGenericObject<?> item) {//TODO use wherever element is added
+	/**
+	 * updates the drag/drop listeners of the UI of a {@link ParameterizedGenericObject}
+	 * @param item the {@link ParameterizedGenericObject}
+	 */
+	private void updateElementListeners(ParameterizedGenericObject<?> item) {
 		Node wholeNode = editor.getUIElement(item);
 		if (wholeNode instanceof HBox) {
 			ObservableList<Node> children = ((Parent) wholeNode).getChildrenUnmodifiable();
@@ -172,8 +202,7 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 					adjustPositionsFrom(0, 0);//adjust height of box
 				}
 			}
-			Coord delta = new Coord();
-			addElementToPaneAndFillDeltaWithPosition(delta, box, editor.getEditorPane(), e);
+			Position delta = addElementToPaneAndFillDeltaWithPosition(box, editor.getEditorPane(), e);
 
 			draggableNode.setOnMouseReleased(evt -> {
 				editor.allowDragDrop(box, elementsInBox);
@@ -183,6 +212,10 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 
 	}
 
+	/**
+	 * runs the operation block if it is double-clicked
+	 * @param event the {@link MouseEvent} to check the click
+	 */
 	@FXML
 	void onClick(MouseEvent event) {
 		if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
@@ -246,5 +279,4 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 	public void setParamNames(String[] paramNames) {
 		this.paramNames = paramNames;
 	}
-	//TODO run programs in another thread
 }

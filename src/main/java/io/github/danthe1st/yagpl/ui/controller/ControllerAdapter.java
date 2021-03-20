@@ -6,12 +6,19 @@ import javafx.application.Platform;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 
+/**
+ * adapter class for {@link Controller}.<br/>
+ * contains multiple utility methods
+ * @author dan1st
+ * @param <T> the type of the root view
+ */
 public abstract class ControllerAdapter<T extends Parent> implements Controller<T> {
 
 	protected YAGPL main;
@@ -37,74 +44,137 @@ public abstract class ControllerAdapter<T extends Parent> implements Controller<
 	public void setGlobalContext(GlobalContext globalCtx) {
 		this.globalCtx=globalCtx;
 	}
-	public void error(String text) {
+	/**
+	 * display an error message
+	 * @param text the text to display
+	 */
+	public final void error(String text) {
 		Alert alert=new Alert(AlertType.ERROR,text);
 		alert.showAndWait();
 	}
-	public void error(String text,Exception e) {
+	/**
+	 * display an error message and log an {@link Exception}
+	 * @param text the text to display
+	 * @param e the {@link Exception} to log
+	 */
+	public final void error(String text,Exception e) {
 		e.printStackTrace();
 		error(text);
 	}
-	public void fatal(String text,Exception e) {
-		e.printStackTrace();
-		error(text);
+	/**
+	 * display an error message, log an {@link Exception} and shut down the application
+	 * @param text the text to display
+	 * @param e the {@link Exception} to log
+	 */
+	public final void fatal(String text,Exception e) {
+		error(text,e);
 		Platform.exit();
 	}
-	
-	protected void allowDrag(Node node) {
+	/**
+	 * allows dragging of a {@link Node}
+	 * @param node
+	 */
+	protected final void allowDrag(Node node) {
 		// Custom object to hold x and y positions
-		final Coord dragDelta = new Coord();
-
+		final Position dragDelta = new Position();
 		node.setOnMousePressed(e -> fillDeltaWithNodePosition(dragDelta,node,e));
 		setDragUpdate(node,dragDelta);
 		node.setOnMouseReleased(e->removeIfTooFarLeft(node));
 	}
-	protected void setDragUpdate(Node node, Coord dragDelta) {
+	/**
+	 * configures a node to be moved when it is dragged
+	 * @param node the node to configure for dragging
+	 * @param dragDelta a mutable coordinate-object used for storing where the node started when dragging it
+	 */
+	protected final void setDragUpdate(Node node, Position dragDelta) {
 		node.setOnMouseDragged(e -> {
 			node.setLayoutX(dragDelta.x+e.getSceneX());
 			node.setLayoutY(calculateDrag(dragDelta.y,e.getSceneY(),0));
 		});
 	}
-	protected Coord getAbsoluteCoord(Node node){
+	/**
+	 * gets the absolute coordinates of a {@link Node}.<br/>
+	 * In this context, absolute means relative to the {@link Scene}
+	 * @param node the node to get the absolute coordinates
+	 * @return the coordinates of the {@link Node} relative to the {@link Scene}
+	 */
+	protected final Position getAbsoluteCoord(Node node){
 		Bounds boundsInScene=node.localToScene(node.getBoundsInLocal());
-		return new Coord(boundsInScene.getMinX(), boundsInScene.getMinY());
+		return new Position(boundsInScene.getMinX(), boundsInScene.getMinY());
 	}
-	protected double estimateHeight(Node node,double width) {//TODO also for width
+	/**
+	 * tries to get the height of a {@link Node}
+	 * @param node the {@link Node} to try to get the height from
+	 * @param width the width of the node
+	 * @return the height of the node
+	 */
+	protected final double estimateHeight(Node node,double width) {
 		if(node instanceof Region) {
 			return ((Region) node).getHeight();
 		}
 		return Math.min(Math.max(node.minHeight(width), node.prefHeight(width)), node.maxHeight(width));
 	}
-	protected void addElementToPaneAndFillDeltaWithPosition(Coord delta,Node node, Pane pane,MouseEvent e) {
+	/**
+	 * adds an element to a {@link Pane} and position it to the point of the mouse event relative to the {@link Pane}
+	 * @param node the node to add to the {@link Pane}
+	 * @param pane the {@link Pane} to add the {@link Node} to
+	 * @param e the {@link MouseEvent} used for getting the mouse position
+	 * @return A {@link Position} containing the relative position of the {@link Node} in the {@link Pane}
+	 */
+	protected final Position addElementToPaneAndFillDeltaWithPosition(Node node, Pane pane,MouseEvent e) {
 		pane.getChildren().add(node);
-		Coord coord=getAbsoluteCoord(node);
+		Position coord=getAbsoluteCoord(node);
 		node.setLayoutX(e.getSceneX()-coord.x);
 		node.setLayoutY(e.getSceneY()-coord.y);
+		Position delta=new Position();
 		fillDeltaWithNodePosition(delta,node,e);
+		return delta;
 	}
-	protected void fillDeltaWithNodePosition(Coord delta, Node node,MouseEvent e) {
+	/**
+	 * sets the x and y values of a {@link Position} to the relative position of the mouse pointer to a {@link Node}
+	 * @param delta the {@link Position} to fill in the coordinates of the mouse pointer relative to the {@link Node}
+	 * @param node the {@link Node} the mouse pointer should be relative to
+	 * @param e the {@link MouseEvent} to calculate the position
+	 */
+	protected final void fillDeltaWithNodePosition(Position delta, Node node,MouseEvent e) {
 		delta.x = node.getLayoutX() - e.getSceneX();
 		delta.y = node.getLayoutY() - e.getSceneY();
 	}
-	protected boolean removeIfTooFarLeft(Node node) {
+	/**
+	 * removes a {@link Node} from its parent if it exceeds the left border of its parent
+	 * @param node the {@link Node} to remove from its parent
+	 * @return <code>true</code> if the node has been removed, else <code>false</code>
+	 */
+	protected final boolean removeIfTooFarLeft(Node node) {
 		Bounds boundsInParent = node.getBoundsInParent();
 		if(boundsInParent.getMaxX()<0||boundsInParent.getMaxY()<0) {
-			((Pane)node.getParent()).getChildren().remove(node);//TODO test with instanceOf
+			((Pane)node.getParent()).getChildren().remove(node);//TODO test with instanceof
 			return true;
 		}
 		return false;
 	}
-	protected double calculateDrag(double prevLayout,double change,double min) {
+	/**
+	 * Calculates the position after dragging an element
+	 * @param prevLayout the previous position
+	 * @param change how the position has changed
+	 * @param min the minimum position
+	 * @return the new position
+	 */
+	protected final double calculateDrag(double prevLayout,double change,double min) {
 		return Math.max(prevLayout+change,min);
 	}
 
-	protected static class Coord {
+	/**
+	 * a class representing coordinates
+	 * @author dan1st
+	 */
+	protected static class Position {
 		private double x;
 		private double y;
-		public Coord() {
+		public Position() {
 			//default constructor
 		}
-		public Coord(double x,double y) {
+		public Position(double x,double y) {
 			this.x=x;
 			this.y=y;
 		}
