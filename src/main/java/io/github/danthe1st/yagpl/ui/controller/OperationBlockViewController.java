@@ -2,22 +2,16 @@ package io.github.danthe1st.yagpl.ui.controller;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import io.github.danthe1st.yagpl.api.Expression;
-import io.github.danthe1st.yagpl.api.FunctionContext;
 import io.github.danthe1st.yagpl.api.OperationBlock;
 import io.github.danthe1st.yagpl.api.ParameterizedGenericObject;
 import io.github.danthe1st.yagpl.api.constant.ConstantExpression;
 import io.github.danthe1st.yagpl.api.throwables.NotResolveableException;
-import io.github.danthe1st.yagpl.api.throwables.YAGPLException;
 import io.github.danthe1st.yagpl.api.util.Resolver;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
@@ -264,7 +258,6 @@ public class OperationBlockViewController extends ControllerAdapter<BorderPane> 
 				}
 			}
 			editor.exec(block,params);
-
 		}
 	}
 
