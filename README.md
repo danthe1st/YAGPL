@@ -26,5 +26,4 @@ YAGPL is a graphical programming language made with JavaFX.
 ### Fizzbuzz
 
 ![image](https://user-images.githubusercontent.com/34687786/112269341-89c0a500-8c78-11eb-8d2d-d0bb1541c9b2.png)
-
 ![image](https://user-images.githubusercontent.com/34687786/112269385-99d88480-8c78-11eb-8c72-63a749fca3d1.png)
