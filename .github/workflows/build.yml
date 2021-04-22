@@ -8,15 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set up JDK 4
+    - name: Set up JDK 14
       uses: actions/setup-java@v2
       with:
         java-version: '14'
         distribution: 'adopt'
     - name: Build with Maven
-      run: mvn -B package -Djavafx.platform=${{ matrix.buildPlatform }}
+      run: mvn -B assembly:single -Djavafx.platform=${{ matrix.buildPlatform }}
+    - name: change JAR name
+      run: mv target/yagpl-jar-with-dependencies.jar yagpl-${{ matrix.buildPlatform }}.jar
     - name: Upload JAR
       uses: actions/upload-artifact@v2.2.3
       with:
-        name: yagpl-${{ matrix.buildPlatform }}.jar
-        path: target/yagpl-jar-with-dependencies.jar
+        path: yagpl-${{ matrix.buildPlatform }}.jar
