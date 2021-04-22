@@ -7,6 +7,9 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Yet Another Graphical Programming Language</name>
 	<description>A graphical programming language made with JavaFX</description>
+	<properties>
+		<main.class>io.github.danthe1st.yagpl.ui.YAGPLLauncher</main.class>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.openjfx</groupId>
@@ -47,8 +50,34 @@
 					<source>14</source>
 					<target>14</target>
 					<release>14</release>
-					<mainClass>io.github.danthe1st.yagpl.ui.YAGPL</mainClass>
+					<mainClass>${main.class}</mainClass>
 				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.3.0</version>
+				<configuration>
+					<finalName>${project.artifactId}</finalName>
+					<archive>
+						<manifest>
+							<mainClass>${main.class}</mainClass>
+						</manifest>
+					</archive>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+				<dependencies>
+				</dependencies>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
