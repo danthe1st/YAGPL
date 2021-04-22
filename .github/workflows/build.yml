@@ -14,10 +14,11 @@ jobs:
         java-version: '14'
         distribution: 'adopt'
     - name: Build with Maven
-      run: mvn -B assembly:single -Djavafx.platform=${{ matrix.buildPlatform }}
+      run: mvn -B compile assembly:single -Djavafx.platform=${{ matrix.buildPlatform }}
     - name: change JAR name
       run: mv target/yagpl-jar-with-dependencies.jar yagpl-${{ matrix.buildPlatform }}.jar
     - name: Upload JAR
       uses: actions/upload-artifact@v2.2.3
       with:
+        name: Pre-build JAR
         path: yagpl-${{ matrix.buildPlatform }}.jar

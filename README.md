@@ -5,9 +5,17 @@
 
 YAGPL is a graphical programming language made with JavaFX.
 
+
 ## Requirements
+### Requirements for running
+* JRE 14+
+
+### Requirements for building
 * Maven 3
-* Java 14+
+* JDK 14+
+
+## Download 
+* You can download prebuilt JARs from [the CI builds](https://github.com/danthe1st/YAGPL/actions)
 
 ## Setup
 
