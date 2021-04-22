@@ -20,5 +20,5 @@ jobs:
     - name: Upload JAR
       uses: actions/upload-artifact@v2.2.3
       with:
-        name: Pre-build JAR
+        name: YAGPL
         path: yagpl-${{ matrix.buildPlatform }}.jar

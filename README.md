@@ -15,7 +15,8 @@ YAGPL is a graphical programming language made with JavaFX.
 * JDK 14+
 
 ## Download 
-* You can download prebuilt JARs from [the CI builds](https://github.com/danthe1st/YAGPL/actions)
+* You can download prebuilt JARs any of [one of the CI builds](https://github.com/danthe1st/YAGPL/actions/workflows/build.yml).
+JARs are available as artifacts.
 
 ## Setup
 
