@@ -17,7 +17,7 @@ jobs:
       run: mvn -B assembly:single package -Djavafx.platform=${{ matrix.buildPlatform }}
     - name: change JAR name
       run: |
-        rm target/yagpl-${{ matrix.buildPlatform }}.jar
+        rm target/yagpl-0.0.1-SNAPSHOT.jar
         mv target/yagpl-jar-with-dependencies.jar target/yagpl-${{ matrix.buildPlatform }}.jar
 #    - name: Upload JAR
 #      uses: actions/upload-artifact@v2.2.3
