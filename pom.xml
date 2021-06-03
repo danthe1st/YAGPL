@@ -4,10 +4,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.danthe1st</groupId>
 	<artifactId>yagpl</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>${version.raw}-SNAPSHOT</version>
 	<name>Yet Another Graphical Programming Language</name>
-	<description>A graphical programming language made with JavaFX</description>
+	<description>A graphical programming language made with JavaFX
+	</description>
 	<properties>
+		<version.raw>0.0.1</version.raw>
 		<main.class>io.github.danthe1st.yagpl.ui.YAGPLLauncher</main.class>
 	</properties>
 	<dependencies>
@@ -51,7 +53,14 @@
 					<target>14</target>
 					<release>14</release>
 					<mainClass>${main.class}</mainClass>
+					<jlinkVerbose>true</jlinkVerbose>
+					<jmodsPath>${project.build.directory}/modules</jmodsPath>
+					<mainClass>${main.class}</mainClass>
+					<stripDebug>true</stripDebug>
+					<jlinkZipName>test</jlinkZipName>
 				</configuration>
+				<!-- <executions> <execution> <id>create-custom-jre</id> <phase>package</phase> 
+					<goals> <goal>jlink</goal> </goals> </execution> </executions> -->
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
@@ -70,6 +79,183 @@
 				<dependencies>
 				</dependencies>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-dependencies</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<includeScope>runtime</includeScope>
+							<outputDirectory>${project.build.directory}/modules
+							</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+
+				<groupId>org.moditect</groupId>
+				<artifactId>moditect-maven-plugin</artifactId>
+				<version>1.0.0.RC1</version>
+				<configuration>
+
+				</configuration>
+				<executions>
+					<execution>
+						<id>add-module-info-to-dependencies</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>add-module-info</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/modules
+							</outputDirectory>
+							<overwriteExistingFiles>true</overwriteExistingFiles>
+							<modules>
+								<module>
+									<artifact>
+										<groupId>org.reflections</groupId>
+										<artifactId>reflections</artifactId>
+									</artifact>
+									<moduleInfo>
+										<name>reflections</name>
+									</moduleInfo>
+								</module>
+								<module>
+									<artifact>
+										<groupId>org.apache.commons</groupId>
+										<artifactId>commons-collections4</artifactId>
+									</artifact>
+									<moduleInfo>
+										<name>org.apache.commons.collections4</name>
+									</moduleInfo>
+								</module>
+								<module>
+									<artifact>
+										<groupId>org.javassist</groupId>
+										<artifactId>javassist</artifactId>
+									</artifact>
+									<moduleInfo>
+										<name>javassist</name>
+									</moduleInfo>
+								</module>
+							</modules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>copy-jar</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+
+						<configuration>
+							<outputDirectory>${project.build.directory}/modules</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${project.build.directory}</directory>
+									<includes>
+										<include>${project.artifactId}-${project.version}.jar</include>
+									</includes>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.panteleyev</groupId>
+				<artifactId>jpackage-maven-plugin</artifactId>
+				<version>1.5.0</version>
+				<configuration>
+
+					<modulePath>${project.build.directory}/modules</modulePath>
+
+				</configuration>
+				<executions>
+					<execution>
+						<id>create-jre</id>
+						<phase>package</phase>
+						<goals>
+							<goal>jpackage</goal>
+						</goals>
+						<configuration>
+							<input>${project.build.directory}/modules</input>
+							<destination>${project.build.directory}/image</destination>
+							<name>${project.artifactId}</name>
+							<type>APP_IMAGE</type>
+							<mainJar>${project.artifactId}-${project.version}.jar
+							</mainJar>
+							<mainClass>${main.class}</mainClass>
+						</configuration>
+					</execution>
+					<execution>
+						<id>package-jre</id>
+						<phase>package</phase>
+						<goals>
+							<goal>jpackage</goal>
+						</goals>
+						<configuration>
+							<appImage>${project.build.directory}/image/${project.artifactId}
+							</appImage>
+							<destination>${project.build.directory}/</destination>
+							<appVersion>${version.raw}</appVersion>
+							<type>${installer.type}</type>
+							<name>${project.artifactId}</name>
+							<winDirChooser>true</winDirChooser>
+							<winMenu>true</winMenu>
+							<winShortcut>true</winShortcut>
+							<winPerUserInstall>true</winPerUserInstall>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
+	<profiles>
+		<profile>
+			<id>win</id>
+			<activation>
+				<os>
+					<family>windows</family>
+				</os>
+			</activation>
+			<properties>
+				<installer.type>MSI</installer.type>
+			</properties>
+		</profile>
+		<profile>
+			<id>linux</id>
+			<activation>
+				<os>
+					<family>unix</family>
+				</os>
+			</activation>
+			<properties>
+				<installer.type>DEB</installer.type>
+			</properties>
+		</profile>
+		<profile>
+			<id>MacOS</id>
+			<activation>
+				<os>
+					<family>mac</family>
+				</os>
+			</activation>
+			<properties>
+				<installer.type>DMG</installer.type>
+			</properties>
+		</profile>
+	</profiles>
 </project>
