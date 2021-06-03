@@ -150,24 +150,67 @@
 				</executions>
 			</plugin>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.4</version>
+				<executions>
+					<execution>
+						<id>default-jar</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						<configuration>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<artifactId>maven-resources-plugin</artifactId>
 				<version>3.1.0</version>
 				<executions>
 					<execution>
 						<id>copy-jar</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+
+						<configuration>
+							<outputDirectory>${project.build.directory}/modules
+							</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${project.build.directory}</directory>
+									<includes>
+										<include>${project.artifactId}-${project.version}.jar
+										</include>
+									</includes>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+					<execution>
+						<id>copy-image</id>
 						<phase>package</phase>
 						<goals>
 							<goal>copy-resources</goal>
 						</goals>
 
 						<configuration>
-							<outputDirectory>${project.build.directory}/modules</outputDirectory>
+							<outputDirectory>${project.build.directory}/image/${project.artifactId}
+							</outputDirectory>
 							<resources>
 								<resource>
 									<directory>${project.build.directory}</directory>
 									<includes>
-										<include>${project.artifactId}-${project.version}.jar</include>
+										<include>${project.artifactId}-${project.version}.jar
+										</include>
 									</includes>
+								</resource>
+								<resource>
+									<directory>${project.build.directory}/image/${project.artifactId}.app
+									</directory>
 								</resource>
 							</resources>
 						</configuration>
@@ -186,7 +229,7 @@
 				<executions>
 					<execution>
 						<id>create-jre</id>
-						<phase>package</phase>
+						<phase>prepare-package</phase>
 						<goals>
 							<goal>jpackage</goal>
 						</goals>
