@@ -4,7 +4,14 @@ jobs:
   build:
     strategy:
       matrix:
-        buildPlatform: [win,linux,mac]
+      #buildPlatform: [win,linux,mac]
+        include:
+        - buildPlatform: win
+          os: windows-latest
+        - buildPlatform: linux
+          os: ubuntu-latest
+        - buildPlatform: mac
+          os: macOS-latest
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
