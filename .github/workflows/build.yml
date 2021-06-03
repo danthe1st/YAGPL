@@ -4,7 +4,6 @@ jobs:
   build:
     strategy:
       matrix:
-      #buildPlatform: [win,linux,mac]
         include:
         - buildPlatform: win
           os: windows-latest
@@ -12,7 +11,8 @@ jobs:
           os: ubuntu-latest
         - buildPlatform: mac
           os: macOS-latest
-    runs-on: ubuntu-latest
+      fail-fast: false
+    runs-on: ${{ os }}
     steps:
     - uses: actions/checkout@v2
     - name: Set up JDK 14
